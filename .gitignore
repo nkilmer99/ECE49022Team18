@@ -1,0 +1,16 @@
+*.xcworkspace/xcuserdata/*.xcuserdatad
+build
+.vscode
+.cache
+tools
+CMakeCache.txt
+CMakeFiles/
+Makefile
+_deps/
+cmake_install.cmake
+generated/
+pico_flash_region.ld
+src/CMakeFiles/
+src/Makefile
+src/cmake_install.cmake
+src/picotool/
