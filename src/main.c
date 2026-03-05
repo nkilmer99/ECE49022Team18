@@ -19,7 +19,7 @@
 // Stack sizes of our threads in words (4 bytes)
 #define MAIN_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
 #define BLINK_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
-#define WORKER_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
+#define WORKER_TASK_STACK_SIZE 2048U
 
 #include "pico/async_context_freertos.h"
 
@@ -115,8 +115,9 @@ int main( void )
   sleep_ms(2000);
   printf("Start3\n");
   sleep_ms(2000);
-  printf("Start4\n");
-  sleep_ms(2000);
+
+  test();
+  return 0;
 
   vLaunch();
   return 0;

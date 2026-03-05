@@ -13,6 +13,7 @@
 extern "C" {
 #endif
 
+void test();
 void ui_init();
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker);
 

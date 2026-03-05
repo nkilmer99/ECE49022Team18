@@ -4,9 +4,55 @@
 #include "lvgl.h"
 #include "ili934x.h"
 #include "hardware/spi.h"
+//#include "ili9341.h"
 
 // Stuff for lvgl to flush pixels to screen
-ILI934X screen(spi0, 17, 15, 14);
+ILI934X *screen = nullptr;
+
+void test() {
+  printf("Spi init\n");
+  /*
+  spi_init(spi0, 128 * 1000);
+
+  printf("Running gpio_set_functions\n");
+  gpio_set_function(16, GPIO_FUNC_SPI);
+  gpio_set_function(18, GPIO_FUNC_SPI);
+  gpio_set_function(19, GPIO_FUNC_SPI);
+
+  printf("Init CS\n");
+  gpio_init(17); // CS
+  gpio_set_dir(17, GPIO_OUT);
+  gpio_put(17, 1);
+
+  printf("Init DC\n");
+  gpio_init(15); // DC
+  gpio_set_dir(15, GPIO_OUT);
+
+  printf("Init RST\n");
+  gpio_init(14); // RST
+  gpio_set_dir(14, GPIO_OUT);
+  gpio_put(14, 1);
+  */
+
+  /*
+  LCD_setPins(15,17,14,18,19);
+  LCD_setSPIperipf(spi0);
+  LCD_initDisplay();
+  LCD_WritePixel(50,50,0xF800);
+  */
+  /*
+  printf("New ILI934X\n");
+  screen = new ILI934X(spi0, 17, 15, 14);
+
+  printf("Screen init\n");
+  screen->init();
+
+  printf("Screen clear\n");
+  while (true) {
+    screen->clear(0xF800);
+  }
+  */
+}
 
 void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
   printf("Disp_flush!\n");
@@ -16,7 +62,10 @@ void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *colo
 
   printf("Draw to screen\n");
   //screen.blit(area->x1,area->y1,height,width,(uint16_t *)color_p);
-  screen.fillRect(0,0,320,240,0xF800);
+  //screen.fillRect(0,0,320,240,0xF800);
+  //screen->clear(0xF800);
+  uint8_t dummy_data = 0xFF;
+  spi_write_blocking(spi0, &dummy_data, 1);
 
   printf("Mark flush done\n");
   lv_disp_flush_ready(disp_drv);
@@ -32,6 +81,8 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_disp_drv_t disp_drv;
 
 void ui_init() {
+  printf("Running ui_init!\n");
+
   printf("Running spi_init\n");
   spi_init(spi0, 30 * 1000 * 1000);
 
@@ -54,8 +105,13 @@ void ui_init() {
   gpio_set_dir(14, GPIO_OUT);
   gpio_put(14, 1);
 
+  /*
+  printf("Constructing object\n");
+  screen = new ILI934X(spi0, 17, 15, 14);
+
   printf("Init screen\n");
-  screen.init();
+  screen->init();
+  */
 
   printf("Init lv\n");
   lv_init();

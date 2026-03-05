@@ -16,12 +16,14 @@ add_subdirectory(pico-libs)
 add_subdirectory(pico-libs/src/common/ili934x)
 add_subdirectory(pico-libs/src/common/fonts)
 
+add_subdirectory(pico-displayDrivs)
+
 set(LV_CONF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Config/lv_conf.h)
 add_subdirectory(lvgl)
 
 add_executable(main
   src/main.c
-  src/ui.cpp
+  src/ui.c
 )
 
 target_include_directories(lvgl PUBLIC
@@ -47,6 +49,7 @@ target_link_libraries(main PRIVATE
   ili934x
   fonts
   lvgl::lvgl
+  ili9341
 )
 
 pico_enable_stdio_usb(main 1)
