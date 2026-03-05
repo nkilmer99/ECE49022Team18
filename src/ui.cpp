@@ -4,7 +4,7 @@
 #include "lvgl.h"
 #include "ili934x.h"
 #include "hardware/spi.h"
-//#include "ili9341.h"
+#include "ili9341.h"
 
 // Stuff for lvgl to flush pixels to screen
 ILI934X *screen = nullptr;
@@ -34,12 +34,10 @@ void test() {
   gpio_put(14, 1);
   */
 
-  /*
   LCD_setPins(15,17,14,18,19);
   LCD_setSPIperipf(spi0);
   LCD_initDisplay();
   LCD_WritePixel(50,50,0xF800);
-  */
   /*
   printf("New ILI934X\n");
   screen = new ILI934X(spi0, 17, 15, 14);
