@@ -13,7 +13,8 @@
 extern "C" {
 #endif
 
-void test();
+void send_data(uint16_t data);
+void write_lines(char * lines);
 void ui_init();
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker);
 

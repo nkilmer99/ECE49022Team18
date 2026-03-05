@@ -66,29 +66,29 @@ static async_context_t *create_async_context(void) {
 async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
 
 void main_task(__unused void *params) {
-  printf("Start main task\n");
+  //printf("Start main task\n");
   async_context_t *context = create_async_context();
 
-  printf("Running ui_init\n");
+  //printf("Running ui_init\n");
   ui_init();
 
   // start the worker running
-  printf("Starting worker\n");
+  //printf("Starting worker\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
 
   // start the led blinking
-  printf("Starting led\n");
+  //printf("Starting led\n");
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
 
-  printf("Starting main loop\n");
+  //printf("Starting main loop\n");
   int count = 0;
   while(true) {
     static int last_core_id = -1;
     if (portGET_CORE_ID() != last_core_id) {
       last_core_id = portGET_CORE_ID();
-      printf("main task is on core %d\n", last_core_id);
+      //printf("main task is on core %d\n", last_core_id);
     }
-    printf("Hello from main task count=%u\n", count++);
+    //printf("Hello from main task count=%u\n", count++);
     vTaskDelay(3000);
   }
   async_context_deinit(context);
@@ -109,15 +109,14 @@ void vLaunch( void) {
 int main( void )
 {
   stdio_init_all();
+  /*
   printf("Start1\n");
   sleep_ms(2000);
   printf("Start2\n");
   sleep_ms(2000);
   printf("Start3\n");
   sleep_ms(2000);
-
-  test();
-  return 0;
+  */
 
   vLaunch();
   return 0;
