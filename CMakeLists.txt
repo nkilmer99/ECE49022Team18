@@ -11,10 +11,11 @@ pico_sdk_init()
 include(FreeRTOS_Kernel_import.cmake)
 
 add_executable(main
-  main.c
+  src/main.c
 )
 
 target_include_directories(main PRIVATE
+  src
   FreeRTOSConfig
 )
 
