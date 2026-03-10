@@ -4,13 +4,3 @@
 [submodule "FreeRTOS-Kernel"]
 	path = FreeRTOS-Kernel
 	url = https://github.com/raspberrypi/FreeRTOS-Kernel
-[submodule "pico-libs"]
-	path = pico-libs
-	url = https://github.com/bizzehdee/pico-libs/
-[submodule "lvgl"]
-	path = lvgl
-	url = https://github.com/lvgl/lvgl.git
-	branch = release/v8.3
-[submodule "pico-displayDrivs"]
-	path = pico-displayDrivs
-	url = https://github.com/rprouse/pico-displayDrivs.git

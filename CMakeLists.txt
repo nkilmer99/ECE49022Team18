@@ -18,7 +18,6 @@ add_executable(main
 target_include_directories(main PRIVATE
   src
   Config
-  ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Linking to FreeRTOS-Kernel-Heap4 to use a dynamic heap for allocations
