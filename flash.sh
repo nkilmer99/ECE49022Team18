@@ -6,6 +6,12 @@ if ! sudo true; then
 fi
 
 BLKDEV=$(lsblk -rno LABEL,PATH | grep RP2350 | cut -d" " -f2)
+
+if [ "$BLKDEV" = "" ]; then
+  echo "RP2350 not found"
+  exit 1
+fi
+
 MNTPOINT=$(mktemp -d)
 
 sudo mount $BLKDEV $MNTPOINT
