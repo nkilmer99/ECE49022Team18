@@ -1,157 +1,123 @@
-/**
- * RP2040 FreeRTOS Template
- *
- * @copyright 2025, Tony Smith (@smittytone)
- * @version   1.5.1
- * @licence   MIT
- *
- */
-#include "main.h"
+#include <stdio.h>
 
+#include "pico/stdlib.h"
+#include "pico/multicore.h"
 
-/*
- * GLOBALS
- */
-// This is the inter-task queue
-volatile QueueHandle_t queue = NULL;
+#include "FreeRTOS.h"
+#include "task.h"
 
-// Set a delay time of exactly 500ms
-const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
+#include "ui.h"
 
-// FROM 1.0.1 Record references to the tasks
-TaskHandle_t gpio_task_handle = NULL;
-TaskHandle_t pico_task_handle = NULL;
+// Delay between led blinking
+#define LED_DELAY_MS 2000
 
+// Priorities of our threads - higher numbers are higher priority
+#define MAIN_TASK_PRIORITY      ( tskIDLE_PRIORITY + 2UL )
+#define BLINK_TASK_PRIORITY     ( tskIDLE_PRIORITY + 1UL )
+#define WORKER_TASK_PRIORITY    ( tskIDLE_PRIORITY + 4UL )
 
-/*
- * FUNCTIONS
- */
+// Stack sizes of our threads in words (4 bytes)
+#define MAIN_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
+#define BLINK_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
+#define WORKER_TASK_STACK_SIZE 2048U
 
-/**
- * @brief Repeatedly flash the Pico's built-in LED.
- */
-void led_task_pico(void* unused_arg) {
+#include "pico/async_context_freertos.h"
 
-    // Store the Pico LED state
-    uint8_t pico_led_state = 0;
-
-    // Configure the Pico's on-board LED
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
-    while (true) {
-        // Turn Pico LED on an add the LED state
-        // to the FreeRTOS xQUEUE
-        log_debug("PICO LED FLASH");
-        pico_led_state = 1;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
-        vTaskDelay(ms_delay);
-
-        // Turn Pico LED off an add the LED state
-        // to the FreeRTOS xQUEUE
-        pico_led_state = 0;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
-        vTaskDelay(ms_delay);
-    }
+// Turn led on or off
+static void set_led(bool led_on) {
+  gpio_put(PICO_DEFAULT_LED_PIN, led_on);
 }
 
-
-/**
- * @brief Repeatedly flash an LED connected to GPIO pin 20
- *        based on the value passed via the inter-task queue.
- */
-void led_task_gpio(void* unused_arg) {
-
-    // This variable will take a copy of the value
-    // added to the FreeRTOS xQueue
-    uint8_t passed_value_buffer = 0;
-
-    // Configure the GPIO LED
-    gpio_init(RED_LED_PIN);
-    gpio_set_dir(RED_LED_PIN, GPIO_OUT);
-
-    while (true) {
-        // Check for an item in the FreeRTOS xQueue
-        if (xQueueReceive(queue, &passed_value_buffer, portMAX_DELAY) == pdPASS) {
-            // Received a value so flash the GPIO LED accordingly
-            // (NOT the sent value)
-            if (passed_value_buffer) log_debug("GPIO LED FLASH");
-            gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
-        }
-    }
+// Initialise led
+static void init_led(void) {
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 }
 
+void blink_task(__unused void *params) {
+  bool on = false;
+  printf("blink_task starts\n");
+  init_led();
+  while (true) {
+    static int last_core_id = -1;
+    if (portGET_CORE_ID() != last_core_id) {
+      last_core_id = portGET_CORE_ID();
+      printf("blink task is on core %d\n", last_core_id);
+    }
+    set_led(on);
+    on = !on;
 
-/**
- * @brief Generate and print a debug message from a supplied string.
- *
- * @param msg: The base message to which `[DEBUG]` will be prefixed.
- */
-void log_debug(const char* msg) {
-
-#ifdef DEBUG
-    uint msg_length = 9 + strlen(msg);
-    char* sprintf_buffer = malloc(msg_length);
-    sprintf(sprintf_buffer, "[DEBUG] %s\n", msg);
-    printf("%s", sprintf_buffer);
-    free(sprintf_buffer);
-#endif
+    sleep_ms(LED_DELAY_MS);
+  }
 }
 
+static async_context_freertos_t async_context_instance;
 
-/**
- * @brief Show basic device info.
- */
-void log_device_info(void) {
-
-    printf("App: %s %s (%i)\n", APP_NAME, APP_VERSION, BUILD_NUM);
+// Create an async context
+static async_context_t *create_async_context(void) {
+  async_context_freertos_config_t config = async_context_freertos_default_config();
+  config.task_priority = WORKER_TASK_PRIORITY; // defaults to ASYNC_CONTEXT_DEFAULT_FREERTOS_TASK_PRIORITY
+  config.task_stack_size = WORKER_TASK_STACK_SIZE; // defaults to ASYNC_CONTEXT_DEFAULT_FREERTOS_TASK_STACK_SIZE
+  if (!async_context_freertos_init(&async_context_instance, &config))
+    return NULL;
+  return &async_context_instance.core;
 }
 
+async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
 
-/*
- * RUNTIME START
- */
-int main() {
+void main_task(__unused void *params) {
+  //printf("Start main task\n");
+  async_context_t *context = create_async_context();
 
-    // Enable STDIO
-#ifdef DEBUG
-    stdio_usb_init();
-    // Pause to allow the USB path to initialize
-    sleep_ms(2000);
+  //printf("Running ui_init\n");
+  ui_init();
 
-    // Log app info
-    log_device_info();
-#endif
+  // start the worker running
+  //printf("Starting worker\n");
+  async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
 
-    // Set up two tasks
-    // FROM 1.0.1 Store handles referencing the tasks; get return values
-    // NOTE Arg 3 is the stack depth -- in words, not bytes
-    BaseType_t pico_status = xTaskCreate(led_task_pico,
-                                         "PICO_LED_TASK",
-                                         128,
-                                         NULL,
-                                         1,
-                                         &pico_task_handle);
-    BaseType_t gpio_status = xTaskCreate(led_task_gpio,
-                                         "GPIO_LED_TASK",
-                                         128,
-                                         NULL,
-                                         1,
-                                         &gpio_task_handle);
+  // start the led blinking
+  //printf("Starting led\n");
+  xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
 
-    // Set up the event queue
-    queue = xQueueCreate(4, sizeof(uint8_t));
-
-    // Start the FreeRTOS scheduler
-    // FROM 1.0.1: Only proceed with valid tasks
-    if (pico_status == pdPASS || gpio_status == pdPASS) {
-        vTaskStartScheduler();
+  //printf("Starting main loop\n");
+  int count = 0;
+  while(true) {
+    static int last_core_id = -1;
+    if (portGET_CORE_ID() != last_core_id) {
+      last_core_id = portGET_CORE_ID();
+      //printf("main task is on core %d\n", last_core_id);
     }
+    //printf("Hello from main task count=%u\n", count++);
+    vTaskDelay(3000);
+  }
+  async_context_deinit(context);
+}
 
-    // We should never get here, but just in case...
-    while(true) {
-        // NOP
-    }
+void vLaunch( void) {
+  TaskHandle_t task;
+
+  xTaskCreate(main_task, "MainThread", MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIORITY, &task);
+
+  // we must bind the main task to one core (well at least while the init is called)
+  vTaskCoreAffinitySet(task, 1);
+
+  /* Start the tasks and timer running. */
+  vTaskStartScheduler();
+}
+
+int main( void )
+{
+  stdio_init_all();
+  /*
+  printf("Start1\n");
+  sleep_ms(2000);
+  printf("Start2\n");
+  sleep_ms(2000);
+  printf("Start3\n");
+  sleep_ms(2000);
+  */
+
+  vLaunch();
+  return 0;
 }

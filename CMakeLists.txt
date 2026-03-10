@@ -1,61 +1,33 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.13...3.27)
 
-# Set project data
-set(PROJECT_NAME "SOUS_VIDE_MACHINE")
-set(BUILD_NUMBER "1")
+# initialize pico-sdk from submodule
+# note: this must happen before project()
+include(pico-sdk/pico_sdk_init.cmake)
 
-# Set app name(s) and version(s)
-set(APP_NAME "SOUS_VIDE")
-set(APP_VERSION_NUMBER "0.0.0")
+project(ECE49022Team18 C CXX ASM)
 
-# Specify the app(s) source code
-set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/src")
-
-# FROM 1.4.2 -- Set app-side debugging on debug builds
-# Now uses CMake generator expression to extract config type
-add_compile_definitions($<$<CONFIG:Debug>:DEBUG=1>) # TODO: Verify
-
-# Set env variable 'PICO_SDK_PATH' to the local Pico SDK
-# Comment out the set() if you have a global copy of the
-# SDK set and $PICO_SDK_PATH defined in your $PATH
-set(ENV{PICO_SDK_PATH} "${CMAKE_SOURCE_DIR}/pico-sdk")
-
-# Set flags and directory variables
-set(FREERTOS_CFG_DIRECTORY "${CMAKE_SOURCE_DIR}/Config") #TODO: Check if this needs to be a separate directory
-#set(FREERTOS_CFG "${CMAKE_SOURCE_DIR}/FreeRTOSConfig.h") #TODO: Check if this needs to be a separate directory
-set(FREERTOS_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/FreeRTOS-Kernel")
-
-# Include the Pico SDK
-include(pico_sdk_import.cmake) # TODO: Verify
-
-# Name the project
-project(${PROJECT_NAME}
-        LANGUAGES C CXX ASM
-        DESCRIPTION "Souse Vide machine using an RPI Pico and FreeRTOS"
-)
-
-# Initialise the Pico SDK
 pico_sdk_init()
 
-# Add FreeRTOS as a library
-add_library(FreeRTOS STATIC
-    ${FREERTOS_SRC_DIRECTORY}/event_groups.c
-    ${FREERTOS_SRC_DIRECTORY}/list.c
-    ${FREERTOS_SRC_DIRECTORY}/queue.c
-    ${FREERTOS_SRC_DIRECTORY}/stream_buffer.c
-    ${FREERTOS_SRC_DIRECTORY}/tasks.c
-    ${FREERTOS_SRC_DIRECTORY}/timers.c
-    ${FREERTOS_SRC_DIRECTORY}/portable/MemMang/heap_3.c
-    ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0/port.c
+include(FreeRTOS_Kernel_import.cmake)
+
+add_executable(main
+  src/main.c
+  src/ui.c
 )
 
-# Build FreeRTOS
-target_include_directories(FreeRTOS PUBLIC
-    ${FREERTOS_CFG_DIRECTORY}/
-    #${FREERTOS_CFG}
-    ${FREERTOS_SRC_DIRECTORY}/include
-    ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0
+target_include_directories(main PRIVATE
+  src
+  Config
 )
 
-# Include the apps' source code
-add_subdirectory(${APP_SRC_DIRECTORY})
+# Linking to FreeRTOS-Kernel-Heap4 to use a dynamic heap for allocations
+target_link_libraries(main PRIVATE
+  pico_async_context_freertos
+  FreeRTOS-Kernel-Heap4
+  pico_stdlib
+  hardware_spi
+)
+
+pico_enable_stdio_usb(main 1)
+pico_enable_stdio_uart(main 0)
+pico_add_extra_outputs(main)
