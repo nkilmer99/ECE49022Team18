@@ -8,6 +8,8 @@
 
 #include "ui.h"
 
+#include "read_temp.h"
+
 // Delay between led blinking
 #define LED_DELAY_MS 2000
 
@@ -65,16 +67,21 @@ static async_context_t *create_async_context(void) {
 
 async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
 
+async_at_time_worker_t temp_timeout = { .do_work = temp_worker };
+
 void main_task(__unused void *params) {
   //printf("Start main task\n");
   async_context_t *context = create_async_context();
 
   //printf("Running ui_init\n");
   ui_init();
+  DS18B20_init();
 
   // start the worker running
   //printf("Starting worker\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
+  async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
+
 
   // start the led blinking
   //printf("Starting led\n");
