@@ -9,6 +9,8 @@
 #include "ui.h"
 
 #include "read_temp.h"
+#include "motor_control.h"
+#include "weight_sensor.h"
 
 // Delay between led blinking
 #define LED_DELAY_MS 2000
@@ -38,13 +40,13 @@ static void init_led(void) {
 
 void blink_task(__unused void *params) {
   bool on = false;
-  printf("blink_task starts\n");
+  //printf("blink_task starts\n");
   init_led();
   while (true) {
     static int last_core_id = -1;
     if (portGET_CORE_ID() != last_core_id) {
       last_core_id = portGET_CORE_ID();
-      printf("blink task is on core %d\n", last_core_id);
+      //printf("blink task is on core %d\n", last_core_id);
     }
     set_led(on);
     on = !on;
@@ -66,8 +68,8 @@ static async_context_t *create_async_context(void) {
 }
 
 async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
-
 async_at_time_worker_t temp_timeout = { .do_work = temp_worker };
+async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
 
 void main_task(__unused void *params) {
   //printf("Start main task\n");
@@ -76,12 +78,15 @@ void main_task(__unused void *params) {
   //printf("Running ui_init\n");
   ui_init();
   DS18B20_init();
+  motor_control(OFF_MODE);
+  HX711_init();
+  tare_10s_tester();
 
   // start the worker running
   //printf("Starting worker\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
-
+  async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
 
   // start the led blinking
   //printf("Starting led\n");

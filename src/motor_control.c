@@ -3,10 +3,6 @@
 
 #define PWM_PIN 21
 
-#define MAX_MODE 2
-#define CONTROLLED_MODE 1
-#define OFF_MODE 0
-
 void motor_control(int mode)
 {
     // Set PWM_PIN to output PWM
@@ -20,7 +16,7 @@ void motor_control(int mode)
     pwm_set_wrap(slice, 999);
 
     // Clock Divider for frequency (12kHz)
-    pwm_set_clkdiv(slice, 12.5f);  
+    pwm_set_clkdiv(slice, 12.5f);
 
     // 0% DC initially (motor off)
     pwm_set_chan_level(slice, channel, 0);

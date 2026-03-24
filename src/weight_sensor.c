@@ -15,12 +15,12 @@ PROCEDURE TO FIND CALIBRATION VALUE
 
 2. Place Known weight (1kg)
 
-3. Read raw adc value using HX711_read_raw_adc(); 
+3. Read raw adc value using HX711_read_raw_adc();
 Subtract offset from raw value, call it X.
 X = raw - offset
 
 4. your calibration value is X/(known weight). So if it is
-1kg, then CALIBRATION_VALUE = X/1kg = X. Set this in the define 
+1kg, then CALIBRATION_VALUE = X/1kg = X. Set this in the define
 statement
 */
 
@@ -66,7 +66,7 @@ int32_t HX711_read_raw_adc()
     // This Extends 24 bit to int32_t via |=
     if (raw_value & 0x800000)
     {
-      raw_value |= 0xFF000000;  
+      raw_value |= 0xFF000000;
     }
 
     return raw_value;
@@ -116,7 +116,7 @@ void tare_10s_tester()
         printf("Taring %d...\n", i + 1);
         sleep_ms(1000);
     }
-    HX711_tare(); 
+    HX711_tare();
 }
 
 // Read kg or raw
@@ -126,4 +126,11 @@ void read_tester()
     printf("Weight: %.2f kg\n", weight);
     //int32_t raw = HX711_read_raw_adc(); //Uncomment for Calibration
     //printf("Raw: %ld\n", raw);
+}
+
+
+void weight_worker(async_context_t *context, async_at_time_worker_t *worker) {
+  async_context_add_at_time_worker_in_ms(context, worker, 500); // Reschedule self for x ms in the future
+
+  read_tester();
 }
