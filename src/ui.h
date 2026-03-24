@@ -8,6 +8,7 @@
 #include "task.h"
 
 #include "pico/async_context_freertos.h"
+#include "motor_control.h"
 
 void send_data(uint16_t data);
 void write_lines(char * lines);

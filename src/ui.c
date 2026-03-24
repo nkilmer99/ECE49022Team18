@@ -171,12 +171,12 @@ char get_key() {
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  printf("Worker!\n");
+  //printf("Worker!\n");
   async_context_add_at_time_worker_in_ms(context, worker, 10); // Reschedule self for 50 ms in future
 
   if (state == 0) {
     char key = get_key();
-    printf("Key: %c\n", key);
+    //printf("Key: %c\n", key);
     if (key == l_unreg && key != l_reg) {
       if (key == '#') {
         l_reg = key;
@@ -196,6 +196,7 @@ void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
         } else {
           line_i = row1_i;
           state = 1;
+          motor_control(CONTROLLED_MODE);
           lines[15] = 'A';
         }
         write_lines((char *) &lines);
@@ -222,12 +223,14 @@ void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
       for (int i = 0; i < 32; i++) {
         lines[i] = fail[i];
         state = -1;
+        motor_control(OFF_MODE);
       }
       write_lines((char *) &lines);
     }
     else if (key == '*' && l_reg != key) {
       l_reg = key;
       state = 0;
+      motor_control(OFF_MODE);
       lines[15] = 'I';
       for (int i = row1_i; i < 15; i++) {
         lines[i] = ' ';
