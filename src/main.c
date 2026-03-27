@@ -121,14 +121,10 @@ void vLaunch( void) {
 int main( void )
 {
   stdio_init_all();
-  /*
   printf("Start1\n");
   sleep_ms(2000);
   printf("Start2\n");
   sleep_ms(2000);
-  printf("Start3\n");
-  sleep_ms(2000);
-  */
 
   vLaunch();
   return 0;
