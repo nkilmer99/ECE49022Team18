@@ -4,13 +4,13 @@
 #include "hardware/spi.h"
 
 #define SPI_DELAY 1
-#define ROW1 15
-#define ROW2 14
-#define ROW3 13
-#define ROW4 12
-#define COL1 11
-#define COL2 10
-#define COL3 9
+#define ROW1 3
+#define ROW2 8
+#define ROW3 7
+#define ROW4 5
+#define COL1 4
+#define COL2 2
+#define COL3 6
 
 #define CS   17
 #define MOSI 19
@@ -253,9 +253,11 @@ char get_key() {
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  //printf("Worker!\n");
+  printf("Worker!\n");
   async_context_add_at_time_worker_in_ms(context, worker, 10); // Reschedule self for 50 ms in future
-
+  char key = get_key();
+  printf("Key: %c\n", key);
+  printf("End Worker!\n");
   /*
   if (state == 0) {
     char key = get_key();
