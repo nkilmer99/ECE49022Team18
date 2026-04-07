@@ -253,11 +253,11 @@ char get_key() {
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  printf("Worker!\n");
+  //printf("Worker!\n");
   async_context_add_at_time_worker_in_ms(context, worker, 10); // Reschedule self for 50 ms in future
   char key = get_key();
   printf("Key: %c\n", key);
-  printf("End Worker!\n");
+  //printf("End Worker!\n");
   /*
   if (state == 0) {
     char key = get_key();
