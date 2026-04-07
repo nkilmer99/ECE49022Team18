@@ -2,12 +2,12 @@
 #include "pico/stdlib.h"
 #include "read_temp.h"
 
-#define TEMPSENSOR_PIN 22 // Set Temp Sensor Pin (Set in header file as well)
+#define TEMPSENSOR_PIN 21 // Set Temp Sensor Pin (Set in header file as well)
 #define ERROR -999.0f // Default Error Number for error cases
 
 /*
 This code reads temperature in Celsius using 1 DS18B20 Sensor.
-It reads at highest resolution, only allowing 1 reading every 
+It reads at highest resolution, only allowing 1 reading every
 750ms. It can be tuned differently.
 */
 
@@ -16,10 +16,10 @@ Initialization consisting of Reset Pulse sent by
 mcu, followed by presence pulse from slave. See figure 15
 on datasheet for DS18B20.
 */
-int DS18B20_reset() 
+int DS18B20_reset()
 {
     int presence_pulse;
-    
+
     gpio_set_dir(TEMPSENSOR_PIN, GPIO_OUT); // set GPIO to output
     gpio_put(TEMPSENSOR_PIN, 0); // Pull low
     sleep_us(480); // minimum 480us for reset pulse
@@ -34,7 +34,7 @@ int DS18B20_reset()
 }
 
 // Write Bit
-void onewire_write_bit(bool bit) 
+void onewire_write_bit(bool bit)
 {
     gpio_set_dir(TEMPSENSOR_PIN, GPIO_OUT); // set GPIO output
     gpio_put(TEMPSENSOR_PIN, 0); // Start by pulling line low
@@ -45,8 +45,8 @@ void onewire_write_bit(bool bit)
         sleep_us(10);
         gpio_set_dir(TEMPSENSOR_PIN, GPIO_IN); // release line
         sleep_us(60);
-    } 
-    else 
+    }
+    else
     {
         // Write 0
         sleep_us(60);
@@ -56,7 +56,7 @@ void onewire_write_bit(bool bit)
 }
 
 // Read Bit
-int onewire_read_bit() 
+int onewire_read_bit()
 {
     int bit; // bit variable for reading
 
@@ -74,9 +74,9 @@ int onewire_read_bit()
 }
 
 // Write Byte
-void onewire_write_byte(uint8_t byte) 
+void onewire_write_byte(uint8_t byte)
 {
-    for (int i = 0; i < 8; i++) 
+    for (int i = 0; i < 8; i++)
     {
         onewire_write_bit(byte & 0x01);
         byte >>= 1;
@@ -84,10 +84,10 @@ void onewire_write_byte(uint8_t byte)
 }
 
 // Read Byte
-uint8_t onewire_read_byte() 
+uint8_t onewire_read_byte()
 {
     uint8_t byte = 0;
-    for (int i = 0; i < 8; i++) 
+    for (int i = 0; i < 8; i++)
     {
         byte >>= 1;
         if (onewire_read_bit()) byte |= 0x80;
@@ -102,14 +102,14 @@ void DS18B20_init()
     gpio_put(TEMPSENSOR_PIN, 1);
 }
 
-// Read Temperature and return float in degrees C. 
-float DS18B20_read_temperature() 
+// Read Temperature and return float in degrees C.
+float DS18B20_read_temperature()
 {
-    int presence_signal; 
+    int presence_signal;
 
     presence_signal = DS18B20_reset(); // Send Reset
 
-    if (presence_signal == 0) 
+    if (presence_signal == 0)
     {
         printf("<Sensor Undetected>\n"); // Serial Print Undetected Sensor
         return ERROR;
@@ -122,7 +122,7 @@ float DS18B20_read_temperature()
 
     presence_signal = DS18B20_reset(); // Send Reset
 
-    if (presence_signal == 0) 
+    if (presence_signal == 0)
     {
         printf("<Sensor Undetected>\n"); // Serial Print Undetected Sensor
         return ERROR;
@@ -147,7 +147,7 @@ void temp_tester()
     printf("Temperature: %.4f °C\n", temperature); // Serial print temperature
 }
 
-void temp_worker(async_context_t *context, async_at_time_worker_t *worker) 
+void temp_worker(async_context_t *context, async_at_time_worker_t *worker)
 {
     async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for 50 ms in future
     temp_tester();
