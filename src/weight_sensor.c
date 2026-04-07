@@ -2,8 +2,8 @@
 #include "pico/stdlib.h"
 #include "weight_sensor.h"
 
-#define DATA_PIN 2 // Data Pin for HX711
-#define SCK_PIN 3 // Clock Pin for HX711
+#define DATA_PIN 24 // Data Pin for HX711
+#define SCK_PIN 23 // Clock Pin for HX711
 #define TARE_SAMPLES 20 // Times read for Taring
 #define KG_SAMPLES 10 // Times read for kg reading
 

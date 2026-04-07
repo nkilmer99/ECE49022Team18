@@ -1,7 +1,7 @@
 #include "motor_control.h"
 #include "hardware/pwm.h"
 
-#define PWM_PIN 21
+#define PWM_PIN 20
 
 void motor_control(int mode)
 {

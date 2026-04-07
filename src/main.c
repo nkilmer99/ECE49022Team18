@@ -78,7 +78,7 @@ void main_task(__unused void *params) {
   //printf("Running ui_init\n");
   ui_init();
   DS18B20_init();
-  motor_control(OFF_MODE);
+  motor_control(CONTROLLED_MODE);
   HX711_init();
   tare_10s_tester();
 
