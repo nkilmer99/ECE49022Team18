@@ -17,14 +17,19 @@
 #define MISO 16
 #define SCLK 18
 #define DC   8
+#define RST  10
+
+#define RST_DELAY 20
 
 void ui_init() {
   printf("Spi init\n");
   spi_init(spi0, 128 * 1024);
 
-  gpio_set_function(CS, GPIO_FUNC_SPI);
   gpio_set_function(SCLK, GPIO_FUNC_SPI);
   gpio_set_function(MOSI, GPIO_FUNC_SPI);
+  gpio_set_function(MISO, GPIO_FUNC_SPI);
+
+  spi_set_format(spi0,8,0,0,SPI_MSB_FIRST); // 8 data bits
 
   gpio_init(CS);
   gpio_set_dir(CS, GPIO_OUT);
@@ -34,8 +39,39 @@ void ui_init() {
   gpio_set_dir(DC, GPIO_OUT);
   gpio_put(DC, 0);
 
-  spi_set_format(spi0,12,0,0,SPI_MSB_FIRST); // 12 data bits
+  gpio_init(RST);
+  gpio_set_dir(RST, GPIO_OUT);
+  gpio_put(RST, 1);
+  reset_display();
 
+  // Need to set XS = 0h, YS = 0h, XE = 83h, YE = A1h
+  // Should be fine to start
+
+  // Send RAMWR or RAMRD
+
+  // Need to set pixel color format (12 bit/pixel, is 18 by default)
+
+  // Try reading display ID
+  printf("Attempting to read display ID\n");
+  uint8_t w_data[1] = {0x04};
+  uint8_t r_data[4] = {0x00, 0x00, 0x00, 0x00};
+  write_read_bytes(w_data, 1, 1, r_data, 4);
+  printf("r_data: [%x %x %x %x]\n", r_data[0], r_data[1], r_data[2], r_data[3]);
+
+  reset_display();
+
+  printf("Attempting to read display ID again\n");
+
+  uint8_t w_data2[5] = {0x04, 0x00, 0x00, 0x00, 0x00};
+  uint8_t r_data2[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+  gpio_put(DC, 0);
+  gpio_put(CS, 0);
+  spi_write_read_blocking(spi0, w_data2, r_data2, 5);
+  gpio_put(CS, 1);
+  printf("r_data2: [%x %x %x %x %x]\n", r_data[0], r_data[1], r_data[2], r_data[3], r_data[4]);
+
+  // Try writing to pixel (0,0)
+  /*
   write_byte(0, 0x11);
   write_byte(0, 0xB1);
   write_byte(1, 0x05);
@@ -123,6 +159,7 @@ void ui_init() {
   write_byte(0, 0x29);
 
   write_red();
+  */
 
   printf("Init keypad\n");
   gpio_init(COL1);
@@ -154,6 +191,13 @@ void ui_init() {
   gpio_pull_down(ROW4);
 }
 
+void reset_display() {
+  gpio_put(RST, 0);
+  sleep_ms(RST_DELAY);
+  gpio_put(RST, 1);
+  sleep_ms(RST_DELAY);
+}
+
 void write_byte(bool dc, uint8_t data) {
   gpio_put(DC, dc);
   gpio_put(CS, 0);
@@ -164,6 +208,32 @@ void write_byte(bool dc, uint8_t data) {
   gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
+}
+
+// Write w_len bytes from w_data, followed by reading r_len bytes into r_data
+void write_read_bytes(uint8_t * w_data, size_t start_dc, size_t w_len, uint8_t * r_data, size_t r_len) {
+  gpio_put(DC, 0);
+  gpio_put(CS, 0);
+
+  // Write
+  if (start_dc < w_len) {
+    if (start_dc > 0) {
+      spi_write_blocking(spi0, w_data, start_dc);
+    }
+    gpio_put(DC, 1);
+
+    spi_write_blocking(spi0, &w_data[start_dc], w_len - start_dc);
+  }
+  else {
+      spi_write_blocking(spi0, w_data, w_len);
+      gpio_put(DC, 1);
+  }
+
+  // Read
+  spi_read_blocking(spi0, 0, r_data, r_len);
+
+  gpio_put(DC, 0);
+  gpio_put(CS, 1);
 }
 
 void send_data(bool dc, uint16_t * data, size_t len) {
