@@ -17,9 +17,10 @@
 #define MISO 16
 #define SCLK 18
 #define DC   8
+#define BLK  9
 #define RST  10
 
-#define RST_DELAY 20
+#define RST_DELAY 200
 
 void ui_init() {
   printf("Spi init\n");
@@ -39,10 +40,16 @@ void ui_init() {
   gpio_set_dir(DC, GPIO_OUT);
   gpio_put(DC, 0);
 
+  gpio_init(BLK);
+  gpio_set_dir(BLK, GPIO_OUT);
+  gpio_put(BLK, 0);
+
   gpio_init(RST);
   gpio_set_dir(RST, GPIO_OUT);
   gpio_put(RST, 1);
   reset_display();
+  gpio_put(BLK, 1);
+
 
   // Need to set XS = 0h, YS = 0h, XE = 83h, YE = A1h
   // Should be fine to start
@@ -50,6 +57,8 @@ void ui_init() {
   // Send RAMWR or RAMRD
 
   // Need to set pixel color format (12 bit/pixel, is 18 by default)
+
+  write_byte(0, 0x11); // Sleep out & booster on
 
   // Try reading display ID
   printf("Attempting to read display ID\n");
@@ -72,9 +81,8 @@ void ui_init() {
 
   // Try writing to pixel (0,0)
   /*
-  write_byte(0, 0x11);
-  write_byte(0, 0xB1);
-  write_byte(1, 0x05);
+  write_byte(0, 0xB1); // Unknown
+  write_byte(1, 0x05); // Unknown data
   write_byte(1, 0x3A);
   write_byte(1, 0x3A);
 
