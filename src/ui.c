@@ -24,17 +24,14 @@
 
 void ui_init() {
   printf("Spi init\n");
-  spi_init(spi0, 128 * 1024);
+  spi_init(spi0, 9600);
 
   gpio_set_function(SCLK, GPIO_FUNC_SPI);
   gpio_set_function(MOSI, GPIO_FUNC_SPI);
   gpio_set_function(MISO, GPIO_FUNC_SPI);
+  gpio_set_function(CS, GPIO_FUNC_SPI);
 
   spi_set_format(spi0,8,0,0,SPI_MSB_FIRST); // 8 data bits
-
-  gpio_init(CS);
-  gpio_set_dir(CS, GPIO_OUT);
-  gpio_put(CS, 1);
 
   gpio_init(DC);
   gpio_set_dir(DC, GPIO_OUT);
@@ -58,7 +55,10 @@ void ui_init() {
 
   // Need to set pixel color format (12 bit/pixel, is 18 by default)
 
+  // Try writing to pixel (0,0)
+
   write_byte(0, 0x11); // Sleep out & booster on
+  sleep_ms(100);
 
   // Try reading display ID
   printf("Attempting to read display ID\n");
@@ -74,101 +74,10 @@ void ui_init() {
   uint8_t w_data2[5] = {0x04, 0x00, 0x00, 0x00, 0x00};
   uint8_t r_data2[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
   gpio_put(DC, 0);
-  gpio_put(CS, 0);
   spi_write_read_blocking(spi0, w_data2, r_data2, 5);
-  gpio_put(CS, 1);
-  printf("r_data2: [%x %x %x %x %x]\n", r_data[0], r_data[1], r_data[2], r_data[3], r_data[4]);
+  printf("r_data2: [%x %x %x %x %x]\n", r_data2[0], r_data2[1], r_data2[2], r_data2[3], r_data2[4]);
 
-  // Try writing to pixel (0,0)
-  /*
-  write_byte(0, 0xB1); // Unknown
-  write_byte(1, 0x05); // Unknown data
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
-
-  write_byte(0, 0xB2);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
-
-  write_byte(0, 0xB3);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
-
-  write_byte(0, 0xB4);
-  write_byte(1, 0x03);
-
-  write_byte(0, 0xC0);
-  write_byte(1, 0x62);
-  write_byte(1, 0x02);
-  write_byte(1, 0x04);
-
-  write_byte(0, 0xC1);
-  write_byte(1, 0xC0);
-
-  write_byte(0, 0xC2);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x00);
-
-  write_byte(0, 0xC3);
-  write_byte(1, 0x8D);
-  write_byte(1, 0x6A);
-
-  write_byte(0, 0xC4);
-  write_byte(1, 0x8D);
-  write_byte(1, 0xEE);
-
-  write_byte(0, 0xC5);
-  write_byte(1, 0x0E);
-
-  write_byte(0, 0xE0);
-  write_byte(1, 0x10);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x02);
-  write_byte(1, 0x03);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x07);
-  write_byte(1, 0x02);
-  write_byte(1, 0x07);
-  write_byte(1, 0x0A);
-  write_byte(1, 0x12);
-  write_byte(1, 0x27);
-  write_byte(1, 0x37);
-  write_byte(1, 0x00);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x10);
-
-  write_byte(0, 0xE1);
-  write_byte(1, 0x10);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x03);
-  write_byte(1, 0x03);
-  write_byte(1, 0x0F);
-  write_byte(1, 0x06);
-  write_byte(1, 0x02);
-  write_byte(1, 0x08);
-  write_byte(1, 0x0A);
-  write_byte(1, 0x13);
-  write_byte(1, 0x26);
-  write_byte(1, 0x36);
-  write_byte(1, 0x00);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x10);
-
-  write_byte(0, 0x3A);
-  write_byte(1, 0x05);
-
-  write_byte(0, 0x29);
-
-  write_red();
-  */
-
+  // Init keypad
   printf("Init keypad\n");
   gpio_init(COL1);
   gpio_set_dir(COL1, GPIO_OUT);
@@ -208,12 +117,10 @@ void reset_display() {
 
 void write_byte(bool dc, uint8_t data) {
   gpio_put(DC, dc);
-  gpio_put(CS, 0);
 
   spi_write_blocking(spi0, &data, 1);
 
   gpio_put(DC, 0);
-  gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
 }
@@ -221,7 +128,6 @@ void write_byte(bool dc, uint8_t data) {
 // Write w_len bytes from w_data, followed by reading r_len bytes into r_data
 void write_read_bytes(uint8_t * w_data, size_t start_dc, size_t w_len, uint8_t * r_data, size_t r_len) {
   gpio_put(DC, 0);
-  gpio_put(CS, 0);
 
   // Write
   if (start_dc < w_len) {
@@ -241,17 +147,14 @@ void write_read_bytes(uint8_t * w_data, size_t start_dc, size_t w_len, uint8_t *
   spi_read_blocking(spi0, 0, r_data, r_len);
 
   gpio_put(DC, 0);
-  gpio_put(CS, 1);
 }
 
 void send_data(bool dc, uint16_t * data, size_t len) {
   gpio_put(DC, dc);
-  gpio_put(CS, 0);
 
   spi_write16_blocking(spi0, data, len);
 
   gpio_put(DC, 0);
-  gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
 }
@@ -263,9 +166,7 @@ void write_red() {
   uint16_t data = 0x0F0F;
 
   for (int i = 0; i < 20480; i++) {
-    gpio_put(CS, 0);
     spi_write16_blocking(spi0, &data, 1);
-    gpio_put(CS, 1);
   }
 
   gpio_put(DC, 0);
@@ -331,11 +232,11 @@ char get_key() {
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  //printf("Worker!\n");
+  printf("Worker!\n");
   async_context_add_at_time_worker_in_ms(context, worker, 10); // Reschedule self for 50 ms in future
   char key = get_key();
   printf("Key: %c\n", key);
-  //printf("End Worker!\n");
+  printf("End Worker!\n");
   /*
   if (state == 0) {
     char key = get_key();
