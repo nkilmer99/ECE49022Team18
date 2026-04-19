@@ -83,7 +83,7 @@ void main_task(__unused void *params) {
   tare_10s_tester();
 
   // start the worker running
-  printf("Starting workers\n");
+  //printf("Starting worker\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
