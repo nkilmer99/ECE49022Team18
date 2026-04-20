@@ -16,15 +16,15 @@
 #define MOSI 19
 #define MISO 16
 #define SCLK 18
-#define DC   8
+#define DC   10
 #define BLK  9
-#define RST  10
+#define RST  11
 
-#define RST_DELAY 200
+#define RST_DELAY 100 // ms
 
 void ui_init() {
   printf("Spi init\n");
-  spi_init(spi0, 128 * 1024);
+  spi_init(spi0, 60 * 1000 * 1000);
 
   gpio_set_function(SCLK, GPIO_FUNC_SPI);
   gpio_set_function(MOSI, GPIO_FUNC_SPI);
@@ -50,125 +50,222 @@ void ui_init() {
   reset_display();
   gpio_put(BLK, 1);
 
+  // DC = 0 when command, 1 when data
+  // RST is active low
+  // CS is active low
+  // 3 = DC
+  // 4 = CS
+  // 5 = RST
 
-  // Need to set XS = 0h, YS = 0h, XE = 83h, YE = A1h
-  // Should be fine to start
+  // Bytes captured from ref impl:
+  // 11 Sleep out & booster on
+  //
+  // B1 In normal mode (Full colors)
+  // 05
+  // 3C
+  // 3C
+  //
+  // B2 In idle mode (8 colors)
+  // 05
+  // 3C
+  // 3C
+  //
+  // B3 In partial mode + full colors
+  // 05
+  // 3C
+  // 3C
+  // 05
+  // 3C
+  // 3C
+  //
+  // B4 Display inversion control
+  // 03
+  //
+  // C0 Power control setting
+  // 28
+  // 08
+  // 04
+  //
+  // C1 Power control setting
+  // C0
+  //
+  // C2 In normal mode (Full colors)
+  // 0D
+  // 00
+  //
+  // C3 In idle mode (8-colors)
+  // 8D
+  // 2A
+  //
+  // C4 In partial mode + Full colors
+  // 8D
+  // EE
+  //
+  // C5 VCOM control 1
+  // 1A
+  //
+  // 3A Interface pixel format
+  // 05
+  //
+  // 36 Memory data access control
+  // C0
+  //
+  // E0 Set gamma adjustment
+  // 04
+  // 22
+  // 07
+  // 0A
+  // 2E
+  // 30
+  // 25
+  // 2A
+  // 28
+  // 26
+  // 2E
+  // 3A
+  // 00
+  // 01
+  // 03
+  // 13
+  //
+  // E1 Set gamma adjustment
+  // 04
+  // 16
+  // 06
+  // 0D
+  // 2D
+  // 26
+  // 23
+  // 27
+  // 27
+  // 25
+  // 2D
+  // 3B
+  // 00
+  // 01
+  // 04
+  // 13
+  //
+  // 29 Display on
+  //
+  // 36 Memory data access control
+  // 05
+  //
+  // 36 Memory data access control
+  // 65
+  //
+  // 2A Column address set
+  // 00
+  // 01
+  // 00
+  // A0
+  //
+  // 2B Row address set
+  // 00
+  // 02
+  // 00
+  // 81
+  //
+  // 2C Memory write
+  // 00
+  // (Pixel data ...)
 
-  // Send RAMWR or RAMRD
+  printf("Configuring display!\n");
 
-  // Need to set pixel color format (12 bit/pixel, is 18 by default)
+  // Sleep out & booster on
+  write_byte(0, 0x11);
 
-  write_byte(0, 0x11); // Sleep out & booster on
+  // Framerate control
+  // In normal mode (Full colors)
+  uint8_t w_data1[4] = {0xB1, 0x05, 0x3C, 0x3C};
+  send_command(w_data1, 4);
 
-  // Try reading display ID
-  printf("Attempting to read display ID\n");
-  uint8_t w_data[1] = {0x04};
-  uint8_t r_data[4] = {0x00, 0x00, 0x00, 0x00};
-  write_read_bytes(w_data, 1, 1, r_data, 4);
-  printf("r_data: [%x %x %x %x]\n", r_data[0], r_data[1], r_data[2], r_data[3]);
+  // In idle mode (8 colors)
+  uint8_t w_data2[4] = {0xB2, 0x05, 0x3C, 0x3C};
+  send_command(w_data2, 4);
 
-  reset_display();
+  // In partial mode + full colors
+  uint8_t w_data3[7] = {0xB3, 0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C};
+  send_command(w_data3, 7);
 
-  printf("Attempting to read display ID again\n");
+  // Display inversion control
+  uint8_t w_data4[2] = {0xB4, 0x03};
+  send_command(w_data4, 2);
 
-  uint8_t w_data2[5] = {0x04, 0x00, 0x00, 0x00, 0x00};
-  uint8_t r_data2[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
-  gpio_put(DC, 0);
-  gpio_put(CS, 0);
-  spi_write_read_blocking(spi0, w_data2, r_data2, 5);
-  gpio_put(CS, 1);
-  printf("r_data2: [%x %x %x %x %x]\n", r_data[0], r_data[1], r_data[2], r_data[3], r_data[4]);
+  // Power control setting
+  uint8_t w_data5[4] = {0xC0, 0x28, 0x08, 0x04};
+  send_command(w_data5, 4);
 
-  // Try writing to pixel (0,0)
-  /*
-  write_byte(0, 0xB1); // Unknown
-  write_byte(1, 0x05); // Unknown data
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
+  // Power control setting
+  uint8_t w_data6[2] = {0xC1, 0xC0};
+  send_command(w_data6, 2);
 
-  write_byte(0, 0xB2);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
+  // In normal mode (Full colors)
+  uint8_t w_data7[3] = {0xC2, 0x0D, 0x00};
+  send_command(w_data7, 3);
 
-  write_byte(0, 0xB3);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x05);
-  write_byte(1, 0x3A);
-  write_byte(1, 0x3A);
+  // In idle mode (8 colors)
+  uint8_t w_data8[3] = {0xC3, 0x8D, 0x2A};
+  send_command(w_data8, 3);
 
-  write_byte(0, 0xB4);
-  write_byte(1, 0x03);
+  // In partial mode + Full colors
+  uint8_t w_data9[3] = {0xC4, 0x8D, 0xEE};
+  send_command(w_data9, 3);
 
-  write_byte(0, 0xC0);
-  write_byte(1, 0x62);
-  write_byte(1, 0x02);
-  write_byte(1, 0x04);
+  // VCOM control 1
+  uint8_t w_data10[2] = {0xC5, 0x1A};
+  send_command(w_data10, 2);
 
-  write_byte(0, 0xC1);
-  write_byte(1, 0xC0);
+  // Interface pixel format
+  // 0x03 = 12-bit/pixel (4R, 4G, 4B)
+  // 0x05 = 16-bit/pixel (5R, 6G, 5B)
+  // 0x06 = 18-bit/pixel (6R 2-, 6G 2-, 6B 2-)
+  uint8_t w_data11[2] = {0x3A, 0x05};
+  send_command(w_data11, 2);
 
-  write_byte(0, 0xC2);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x00);
+  // Set gamma adjustment
+  uint8_t w_data13[17] = {0xE0, 0x04, 0x22, 0x07, 0x0A, 0x2E, 0x30, 0x25, 0x2A, 0x28, 0x26, 0x2E, 0x3A, 0x00, 0x01, 0x03, 0x13};
+  send_command(w_data13, 17);
 
-  write_byte(0, 0xC3);
-  write_byte(1, 0x8D);
-  write_byte(1, 0x6A);
+  // Set gamma adjustment
+  uint8_t w_data14[17] = {0xE1, 0x04, 0x16, 0x06, 0x0D, 0x2D, 0x26, 0x23, 0x27, 0x27, 0x25, 0x2D, 0x3B, 0x00, 0x01, 0x04, 0x13};
+  send_command(w_data14, 17);
 
-  write_byte(0, 0xC4);
-  write_byte(1, 0x8D);
-  write_byte(1, 0xEE);
-
-  write_byte(0, 0xC5);
-  write_byte(1, 0x0E);
-
-  write_byte(0, 0xE0);
-  write_byte(1, 0x10);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x02);
-  write_byte(1, 0x03);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x07);
-  write_byte(1, 0x02);
-  write_byte(1, 0x07);
-  write_byte(1, 0x0A);
-  write_byte(1, 0x12);
-  write_byte(1, 0x27);
-  write_byte(1, 0x37);
-  write_byte(1, 0x00);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x10);
-
-  write_byte(0, 0xE1);
-  write_byte(1, 0x10);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x03);
-  write_byte(1, 0x03);
-  write_byte(1, 0x0F);
-  write_byte(1, 0x06);
-  write_byte(1, 0x02);
-  write_byte(1, 0x08);
-  write_byte(1, 0x0A);
-  write_byte(1, 0x13);
-  write_byte(1, 0x26);
-  write_byte(1, 0x36);
-  write_byte(1, 0x00);
-  write_byte(1, 0x0D);
-  write_byte(1, 0x0E);
-  write_byte(1, 0x10);
-
-  write_byte(0, 0x3A);
-  write_byte(1, 0x05);
-
+  // Display on
   write_byte(0, 0x29);
 
-  write_red();
-  */
+  // Memory data access control
+  // MY, MX, MV, ML, RGB, MH, -, -
+  // MY = Row Address Order
+  // MX = Column Address Order
+  // MV = Row/Column Exchange
+  // ML = Vertical Refresh Order
+  // RGB = RGB-BGR order (0 = RGB)
+  // MH = Horizontal Refresh Order
+  uint8_t w_data16[2] = {0x36, 0x00};
+  send_command(w_data16, 2);
 
+  // Display is from (inclusive):
+  // XS = 0x02 to XE = 0x81
+  // YS = 0x01 to YE = 0xA0
+  // Column address set {XS1, XS0, XE1, XE0}
+  uint8_t w_data17[5] = {0x2A, 0x00, 0x02, 0x00, 0x81};
+  send_command(w_data17, 5);
+
+  // Row address set {YS1, YS0, YE1, YE0}
+  uint8_t w_data18[5] = {0x2B, 0x00, 0x01, 0x00, 0xA0};
+  send_command(w_data18, 5);
+  printf("Display configured!\n");
+
+  // Write red
+  printf("Writing red!\n");
+  write_byte(0, 0x2C);
+  uint8_t w_data19[10] = {0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00};
+  for (int i = 0; i < 4096; i++) {
+    send_data(w_data19, 10);
+  }
+
+  // Keypad init
   printf("Init keypad\n");
   gpio_init(COL1);
   gpio_set_dir(COL1, GPIO_OUT);
@@ -212,7 +309,7 @@ void write_byte(bool dc, uint8_t data) {
 
   spi_write_blocking(spi0, &data, 1);
 
-  gpio_put(DC, 0);
+  gpio_put(DC, 1);
   gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
@@ -240,36 +337,39 @@ void write_read_bytes(uint8_t * w_data, size_t start_dc, size_t w_len, uint8_t *
   // Read
   spi_read_blocking(spi0, 0, r_data, r_len);
 
-  gpio_put(DC, 0);
-  gpio_put(CS, 1);
-}
-
-void send_data(bool dc, uint16_t * data, size_t len) {
-  gpio_put(DC, dc);
-  gpio_put(CS, 0);
-
-  spi_write16_blocking(spi0, data, len);
-
-  gpio_put(DC, 0);
+  gpio_put(DC, 1);
   gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
 }
 
-void write_red() {
-  printf("Writing red!\n");
+void send_command(uint8_t * data, size_t len) {
+  gpio_put(DC, 0);
+  gpio_put(CS, 0);
+
+  spi_write_blocking(spi0, data, 1);
+
   gpio_put(DC, 1);
 
-  uint16_t data = 0x0F0F;
-
-  for (int i = 0; i < 20480; i++) {
-    gpio_put(CS, 0);
-    spi_write16_blocking(spi0, &data, 1);
-    gpio_put(CS, 1);
+  if (len > 1) {
+    spi_write_blocking(spi0, &data[1], len - 1);
   }
 
-  gpio_put(DC, 0);
-  printf("Done writing red!\n");
+  gpio_put(CS, 1);
+
+  sleep_ms(SPI_DELAY);
+}
+
+void send_data(uint8_t * data, size_t len) {
+  gpio_put(DC, 1);
+  gpio_put(CS, 0);
+
+  spi_write_blocking(spi0, data, len);
+
+  gpio_put(DC, 1);
+  gpio_put(CS, 1);
+
+  sleep_ms(SPI_DELAY);
 }
 
 char get_key() {
