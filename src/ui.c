@@ -257,13 +257,30 @@ void ui_init() {
   send_command(w_data18, 5);
   printf("Display configured!\n");
 
-  // Write red
-  printf("Writing red!\n");
-  write_byte(0, 0x2C);
-  uint8_t w_data19[10] = {0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00, 0xF8, 0x00};
-  for (int i = 0; i < 4096; i++) {
-    send_data(w_data19, 10);
+
+  // Test write
+  printf("Writing to display!\n");
+
+  // Display buffer
+  // 2 bytes per pixel, 128 x 160 = 20480 pixels, 40960 bytes
+  uint8_t * display_buffer = pvPortMalloc(sizeof(uint8_t) * 40960);
+  for (int i = 0; i < 20480; i++) {
+    display_buffer[2 * i] = 0xF8;
+    display_buffer[(2 * i) + 1] = 0x00;
   }
+
+  // Write buffer to display
+  write_segment(display_buffer, 0, 0, 128, 160);
+
+  // Write blue to middle of display
+  for (int i = 0; i < 20480; i++) {
+    display_buffer[2 * i] = 0x00;
+    display_buffer[(2 * i) + 1] = 0x1F;
+  }
+  write_segment(display_buffer, 42, 40, 44, 80);
+
+  vPortFree(display_buffer);
+
 
   // Keypad init
   printf("Init keypad\n");
@@ -315,34 +332,6 @@ void write_byte(bool dc, uint8_t data) {
   sleep_ms(SPI_DELAY);
 }
 
-// Write w_len bytes from w_data, followed by reading r_len bytes into r_data
-void write_read_bytes(uint8_t * w_data, size_t start_dc, size_t w_len, uint8_t * r_data, size_t r_len) {
-  gpio_put(DC, 0);
-  gpio_put(CS, 0);
-
-  // Write
-  if (start_dc < w_len) {
-    if (start_dc > 0) {
-      spi_write_blocking(spi0, w_data, start_dc);
-    }
-    gpio_put(DC, 1);
-
-    spi_write_blocking(spi0, &w_data[start_dc], w_len - start_dc);
-  }
-  else {
-      spi_write_blocking(spi0, w_data, w_len);
-      gpio_put(DC, 1);
-  }
-
-  // Read
-  spi_read_blocking(spi0, 0, r_data, r_len);
-
-  gpio_put(DC, 1);
-  gpio_put(CS, 1);
-
-  sleep_ms(SPI_DELAY);
-}
-
 void send_command(uint8_t * data, size_t len) {
   gpio_put(DC, 0);
   gpio_put(CS, 0);
@@ -370,6 +359,17 @@ void send_data(uint8_t * data, size_t len) {
   gpio_put(CS, 1);
 
   sleep_ms(SPI_DELAY);
+}
+
+void write_segment(uint8_t * buffer, int x, int y, int w, int h) {
+  uint8_t xlimits[5] = {0x2A, 0x00, (uint8_t) (x + 2), 0x00, (uint8_t) (x + w + 1)};
+  send_command(xlimits, 5);
+
+  uint8_t ylimits[5] = {0x2B, 0x00, (uint8_t) (y + 1), 0x00, (uint8_t) (y + h)};
+  send_command(ylimits, 5);
+
+  write_byte(0, 0x2C);
+  send_data(buffer, 2 * w * h);
 }
 
 char get_key() {
