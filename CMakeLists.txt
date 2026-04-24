@@ -26,6 +26,10 @@ pico_sdk_init()
 
 include(FreeRTOS_Kernel_import.cmake)
 
+set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "")
+set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "")
+add_subdirectory(lvgl)
+
 add_executable(main
   src/main.c
   src/ui.c
@@ -39,6 +43,14 @@ target_include_directories(main PRIVATE
   Config
 )
 
+target_include_directories(lvgl PRIVATE
+  Config
+)
+
+target_link_libraries(lvgl PRIVATE
+  FreeRTOS-Kernel-Heap4
+)
+
 # Linking to FreeRTOS-Kernel-Heap4 to use a dynamic heap for allocations
 target_link_libraries(main PRIVATE
   pico_async_context_freertos
@@ -46,6 +58,7 @@ target_link_libraries(main PRIVATE
   pico_stdlib
   hardware_spi
   hardware_pwm
+  lvgl
 )
 
 pico_enable_stdio_usb(main 1)

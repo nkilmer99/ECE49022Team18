@@ -72,27 +72,31 @@ async_at_time_worker_t temp_timeout = { .do_work = temp_worker };
 async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
 
 void main_task(__unused void *params) {
-  //printf("Start main task\n");
+  printf("Start main task\n");
   async_context_t *context = create_async_context();
 
-  //printf("Running ui_init\n");
+  printf("Running ui_init\n");
   ui_init();
+  printf("Running DS_18B20_init\n");
   DS18B20_init();
+  printf("Setting motor mode\n");
   motor_control(CONTROLLED_MODE);
+  printf("Running hx711 init\n");
   HX711_init();
+  printf("Running 10s tare\n");
   tare_10s_tester();
 
   // start the worker running
-  //printf("Starting worker\n");
+  printf("Starting workers\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
 
   // start the led blinking
-  //printf("Starting led\n");
+  printf("Starting led\n");
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
 
-  //printf("Starting main loop\n");
+  printf("Starting main loop\n");
   int count = 0;
   while(true) {
     static int last_core_id = -1;

@@ -3,7 +3,7 @@
 #include "ui.h"
 #include "hardware/spi.h"
 
-#define SPI_DELAY 1
+#define SPI_DELAY 0
 #define ROW1 3
 #define ROW2 8
 #define ROW3 7
@@ -21,6 +21,9 @@
 #define RST  11
 
 #define RST_DELAY 100 // ms
+#define BUF_SIZE 128 * 160 * 2
+
+lv_obj_t * global_label = NULL;
 
 void ui_init() {
   printf("Spi init\n");
@@ -257,7 +260,6 @@ void ui_init() {
   send_command(w_data18, 5);
   printf("Display configured!\n");
 
-
   // Test write
   printf("Writing to display!\n");
 
@@ -280,7 +282,6 @@ void ui_init() {
   write_segment(display_buffer, 42, 40, 44, 80);
 
   vPortFree(display_buffer);
-
 
   // Keypad init
   printf("Init keypad\n");
@@ -311,6 +312,27 @@ void ui_init() {
   gpio_init(ROW4);
   gpio_set_dir(ROW4, GPIO_IN);
   gpio_pull_down(ROW4);
+
+  // LVGL setup
+  lv_init();
+
+  lv_tick_set_cb(xTaskGetTickCount);
+
+  lv_display_t * display = lv_display_create(128, 160);
+
+  uint8_t * buf = pvPortMalloc(BUF_SIZE);
+  lv_display_set_buffers(display, buf, NULL, BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+  lv_display_set_flush_cb(display, flush_cb);
+
+  global_label = lv_label_create(lv_screen_active());
+  lv_label_set_text(global_label, "Hello LVGL!");
+
+  /*
+  printf("Starting lv timer handler\n");
+  lv_timer_handler();
+  printf("Returned from lv timer handler\n");
+  */
 }
 
 void reset_display() {
@@ -372,6 +394,12 @@ void write_segment(uint8_t * buffer, int x, int y, int w, int h) {
   send_data(buffer, 2 * w * h);
 }
 
+void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
+  write_segment(px_buf, area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
+
+  lv_display_flush_ready(disp);
+}
+
 char get_key() {
   // Col 1
   gpio_put(COL1, 1);
@@ -431,88 +459,16 @@ char get_key() {
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  //printf("Worker!\n");
-  async_context_add_at_time_worker_in_ms(context, worker, 10); // Reschedule self for 50 ms in future
+  // Reschedule self for 20 ms in future
+  async_context_add_at_time_worker_in_ms(context, worker, 20);
+
+  // Get key
   char key = get_key();
   printf("Key: %c\n", key);
-  //printf("End Worker!\n");
-  /*
-  if (state == 0) {
-    char key = get_key();
-    //printf("Key: %c\n", key);
-    if (key == l_unreg && key != l_reg) {
-      if (key == '#') {
-        l_reg = key;
-        // Failure
-        for (int i = 0; i < 32; i++) {
-          lines[i] = fail[i];
-          state = -1;
-        }
-        write_lines((char *) &lines);
-      } else if (key == '*') {
-        lines[line_i] = ' ';
-        l_reg = key;
-        // Enter
-        if (line_i < 16) {
-          line_i = row2_i;
-          lines[line_i] = '<';
-        } else {
-          line_i = row1_i;
-          state = 1;
-          motor_control(CONTROLLED_MODE);
-          lines[15] = 'A';
-        }
-        write_lines((char *) &lines);
-      } else if (key != ' ') {
-        l_reg = key;
-        // Number
-        lines[line_i] = key;
-        line_i += 1;
-        lines[line_i] = '<';
-        write_lines((char *) &lines);
-      } else {
-        if (key == l_unreg) {
-          l_reg = key;
-        }
-        l_unreg = key;
-      }
-    } else {
-      l_unreg = key;
-    }
-  }
-  else if (state != -1) {
-    char key = get_key();
-    if (key == '#') {
-      for (int i = 0; i < 32; i++) {
-        lines[i] = fail[i];
-        state = -1;
-        motor_control(OFF_MODE);
-      }
-      write_lines((char *) &lines);
-    }
-    else if (key == '*' && l_reg != key) {
-      l_reg = key;
-      state = 0;
-      motor_control(OFF_MODE);
-      lines[15] = 'I';
-      for (int i = row1_i; i < 15; i++) {
-        lines[i] = ' ';
-      }
-      for (int i = row2_i; i < 32; i++) {
-        lines[i] = ' ';
-      }
-      line_i = row1_i;
-      lines[line_i] = '<';
-      write_lines((char *) &lines);
-    }
-    else {
-      if (key == l_unreg) {
-        l_reg = key;
-      }
-      l_unreg = key;
-    }
-  }
 
-  //printf("End worker\n");
-  */
+  // Update key on display
+  lv_label_set_text_fmt(global_label, "Key: %c", key);
+
+  // Update lvgl (writes to display, plays animations, etc.)
+  lv_timer_handler();
 }
