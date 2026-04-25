@@ -7,6 +7,7 @@
 #include "task.h"
 
 #include "ui.h"
+#include "keys.h"
 
 #include "read_temp.h"
 #include "motor_control.h"
@@ -68,6 +69,7 @@ static async_context_t *create_async_context(void) {
 }
 
 async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
+async_at_time_worker_t key_timeout = { .do_work = key_worker };
 async_at_time_worker_t temp_timeout = { .do_work = temp_worker };
 async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
 
@@ -89,6 +91,7 @@ void main_task(__unused void *params) {
   // start the worker running
   printf("Starting workers\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
+  async_context_add_at_time_worker_in_ms(context, &key_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
 

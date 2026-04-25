@@ -10,6 +10,9 @@ lv_obj_t * global_obj = NULL;
 lv_obj_t * global_label = NULL;
 lv_style_t global_style;
 
+char line[10] = ":        ";
+size_t cursor = 1;
+
 struct line {
   char * buf;
   size_t size;
@@ -19,14 +22,15 @@ struct line {
 struct line * stats = NULL;
 
 enum {
-  STATS_KEY = 0,
+  STATS_RAW_KEY = 0,
+  STATS_KEY,
   STATS_WEIGHT,
   STATS_TEMP,
   STATS_TEMP_P,
   STATS_TEMP_I,
   STATS_TEMP_D,
   STATS_TEMP_PID,
-  STATS_SIZE,
+  STATS_SIZE
 };
 
 struct line * inputs = NULL;
@@ -38,6 +42,7 @@ enum {
   INPUTS_TEMP_I,
   INPUTS_TEMP_D,
   INPUTS_TIMER,
+  INPUTS_SIZE
 };
 
 void ui_init() {
@@ -92,6 +97,7 @@ void ui_init() {
 
   // Make label
   global_label = lv_label_create(global_obj);
+  lv_label_set_text(global_label, line);
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
@@ -105,11 +111,13 @@ void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
   async_context_add_at_time_worker_in_ms(context, worker, 20);
 
   // Get key
-  char key = get_key();
-  printf("Key: %c\n", key);
-
-  // Update key on display
-  lv_label_set_text_fmt(global_label, "Key: %c", key);
+  char key = get_read_key();
+  if (key != NULL_CHAR) {
+    mark_read();
+    line[cursor] = key;
+    cursor++;
+    lv_label_set_text(global_label, line);
+  }
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();
