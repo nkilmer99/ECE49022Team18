@@ -6,7 +6,7 @@
 #include "pico/stdlib.h"
 
 #define ROW1 3
-#define ROW2 8
+#define ROW2 1
 #define ROW3 7
 #define ROW4 5
 #define COL1 4
@@ -81,13 +81,14 @@ char get_key() {
 
 char get_read_key() {
   char key = get_key();
-  if (key == NULL_CHAR) read = false;
-  if (read) return NULL_CHAR;
-  return key;
-}
+  if (key == NULL_CHAR) {
+    read = false;
+  } else if (read == false) {
+    read = true;
+    return key;
+  }
 
-void mark_read() {
-  read = true;
+  return NULL_CHAR;
 }
 
 void key_worker(async_context_t *context, async_at_time_worker_t *worker) {
@@ -168,4 +169,15 @@ uint8_t poll_keypad() {
   gpio_put(COL3, 0);
 
   return 0;
+}
+
+void debug_print_pins() {
+  printf("Keypad pins:\n");
+  printf("COL1: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(COL1), gpio_get_dir(COL1), gpio_is_pulled_down(COL1), gpio_is_pulled_up(COL1), gpio_get(COL1));
+  printf("COL2: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(COL2), gpio_get_dir(COL2), gpio_is_pulled_down(COL2), gpio_is_pulled_up(COL2), gpio_get(COL2));
+  printf("COL3: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(COL3), gpio_get_dir(COL3), gpio_is_pulled_down(COL3), gpio_is_pulled_up(COL3), gpio_get(COL3));
+  printf("ROW1: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(ROW1), gpio_get_dir(ROW1), gpio_is_pulled_down(ROW1), gpio_is_pulled_up(ROW1), gpio_get(ROW1));
+  printf("ROW2: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(ROW2), gpio_get_dir(ROW2), gpio_is_pulled_down(ROW2), gpio_is_pulled_up(ROW2), gpio_get(ROW2));
+  printf("ROW3: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(ROW3), gpio_get_dir(ROW3), gpio_is_pulled_down(ROW3), gpio_is_pulled_up(ROW3), gpio_get(ROW3));
+  printf("ROW4: Func: %d, Dir: %d, PDown: %d, PUp: %d, Val: %d\n", gpio_get_function(ROW4), gpio_get_dir(ROW4), gpio_is_pulled_down(ROW4), gpio_is_pulled_up(ROW4), gpio_get(ROW4));
 }

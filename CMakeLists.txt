@@ -34,6 +34,8 @@ add_executable(main
   src/main.c
   src/ui.c
   src/display.c
+  src/debug_screen.c
+  src/prod_screen.c
   src/keys.c
   src/motor_control.c
   src/read_temp.c

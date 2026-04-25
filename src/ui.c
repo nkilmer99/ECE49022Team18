@@ -3,47 +3,17 @@
 #include "ui.h"
 #include "display.h"
 #include "keys.h"
+#include "prod_screen.h"
+#include "debug_screen.h"
 
 #define BUF_SIZE WIDTH * HEIGHT * BYTES_PER_PIXEL
 
-lv_obj_t * global_obj = NULL;
-lv_obj_t * global_label = NULL;
-lv_style_t global_style;
+bool debug = false;
 
-char line[10] = ":        ";
-size_t cursor = 1;
-
-struct line {
-  char * buf;
-  size_t size;
-  size_t cursor;
-};
-
-struct line * stats = NULL;
-
-enum {
-  STATS_RAW_KEY = 0,
-  STATS_KEY,
-  STATS_WEIGHT,
-  STATS_TEMP,
-  STATS_TEMP_P,
-  STATS_TEMP_I,
-  STATS_TEMP_D,
-  STATS_TEMP_PID,
-  STATS_SIZE
-};
-
-struct line * inputs = NULL;
-
-enum {
-  INPUTS_MOTOR_MODE = 0,
-  INPUTS_TEMP_TARGET,
-  INPUTS_TEMP_P,
-  INPUTS_TEMP_I,
-  INPUTS_TEMP_D,
-  INPUTS_TIMER,
-  INPUTS_SIZE
-};
+#define REFRESH_RATE 20 // Every x ms
+#define HOLD_TIME 3000 // ms
+#define HOLD_THRESH HOLD_TIME / REFRESH_RATE
+uint32_t hold_count = 0;
 
 void ui_init() {
   // Keypad init
@@ -63,41 +33,12 @@ void ui_init() {
   lv_display_set_buffers(display, buf, NULL, BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(display, flush_cb);
 
-  // Init style
-  lv_style_init(&global_style);
-  lv_style_set_radius(&global_style, 5);
+  // Init debug and prod
+  prod_screen_init();
+  debug_screen_init();
 
-  lv_style_set_width(&global_style, 128);
-  lv_style_set_height(&global_style, 160);
-
-  lv_style_set_pad_ver(&global_style, 10);
-  lv_style_set_pad_hor(&global_style, 10);
-
-  lv_style_set_x(&global_style, 0);
-  lv_style_set_y(&global_style, 0);
-
-  lv_style_set_bg_opa(&global_style, LV_OPA_COVER);
-  static lv_grad_dsc_t grad;
-  grad.dir = LV_GRAD_DIR_VER;
-  grad.stops_count = 2;
-  grad.stops[0].color = lv_palette_lighten(LV_PALETTE_GREY, 1);
-  grad.stops[0].opa = LV_OPA_COVER;
-  grad.stops[1].color = lv_palette_main(LV_PALETTE_BLUE);
-  grad.stops[1].opa = LV_OPA_COVER;
-
-  /*Shift the gradient to the bottom*/
-  grad.stops[0].frac  = 80;
-  grad.stops[1].frac  = 160;
-
-  lv_style_set_bg_grad(&global_style, &grad);
-
-  // Make object
-  global_obj = lv_obj_create(lv_screen_active());
-  lv_obj_add_style(global_obj, &global_style, 0);
-
-  // Make label
-  global_label = lv_label_create(global_obj);
-  lv_label_set_text(global_label, line);
+  // Set prod as screen
+  prod_set_active();
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
@@ -112,12 +53,21 @@ void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
 
   // Get key
   char key = get_read_key();
-  if (key != NULL_CHAR) {
-    mark_read();
-    line[cursor] = key;
-    cursor++;
-    lv_label_set_text(global_label, line);
+
+  // Check for debug change
+  if (get_key() == '#') hold_count++;
+  else hold_count = 0;
+
+  if (hold_count > HOLD_THRESH) {
+    hold_count = 0;
+    debug = !debug;
+    if (debug) debug_set_active();
+    else prod_set_active();
   }
+
+  // Update screen
+  if (debug) debug_update_screen(key);
+  else prod_update_screen(key);
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();

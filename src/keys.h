@@ -12,5 +12,6 @@ void mark_read();
 void key_worker(async_context_t *context, async_at_time_worker_t *worker);
 char get_raw_key(); // Key as from keypad
 uint8_t poll_keypad();
+void debug_print_pins();
 
 #endif
