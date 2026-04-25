@@ -1,461 +1,103 @@
 #include <stdio.h>
 
 #include "ui.h"
-#include "hardware/spi.h"
+#include "display.h"
+#include "keys.h"
 
-#define SPI_DELAY 0
-#define ROW1 3
-#define ROW2 8
-#define ROW3 7
-#define ROW4 5
-#define COL1 4
-#define COL2 2
-#define COL3 6
+#define BUF_SIZE WIDTH * HEIGHT * BYTES_PER_PIXEL
 
-#define CS   17
-#define MOSI 19
-#define MISO 16
-#define SCLK 18
-#define DC   10
-#define BLK  9
-#define RST  11
-
-#define RST_DELAY 100 // ms
-#define BUF_SIZE 128 * 160 * 2
-
+lv_obj_t * global_obj = NULL;
 lv_obj_t * global_label = NULL;
+lv_style_t global_style;
+
+struct line {
+  char * buf;
+  size_t size;
+  size_t cursor;
+};
+
+struct line * stats = NULL;
+
+enum {
+  STATS_KEY = 0,
+  STATS_WEIGHT,
+  STATS_TEMP,
+  STATS_TEMP_P,
+  STATS_TEMP_I,
+  STATS_TEMP_D,
+  STATS_TEMP_PID,
+  STATS_SIZE,
+};
+
+struct line * inputs = NULL;
+
+enum {
+  INPUTS_MOTOR_MODE = 0,
+  INPUTS_TEMP_TARGET,
+  INPUTS_TEMP_P,
+  INPUTS_TEMP_I,
+  INPUTS_TEMP_D,
+  INPUTS_TIMER,
+};
 
 void ui_init() {
-  printf("Spi init\n");
-  spi_init(spi0, 60 * 1000 * 1000);
-
-  gpio_set_function(SCLK, GPIO_FUNC_SPI);
-  gpio_set_function(MOSI, GPIO_FUNC_SPI);
-  gpio_set_function(MISO, GPIO_FUNC_SPI);
-
-  spi_set_format(spi0,8,0,0,SPI_MSB_FIRST); // 8 data bits
-
-  gpio_init(CS);
-  gpio_set_dir(CS, GPIO_OUT);
-  gpio_put(CS, 1);
-
-  gpio_init(DC);
-  gpio_set_dir(DC, GPIO_OUT);
-  gpio_put(DC, 0);
-
-  gpio_init(BLK);
-  gpio_set_dir(BLK, GPIO_OUT);
-  gpio_put(BLK, 0);
-
-  gpio_init(RST);
-  gpio_set_dir(RST, GPIO_OUT);
-  gpio_put(RST, 1);
-  reset_display();
-  gpio_put(BLK, 1);
-
-  // DC = 0 when command, 1 when data
-  // RST is active low
-  // CS is active low
-  // 3 = DC
-  // 4 = CS
-  // 5 = RST
-
-  // Bytes captured from ref impl:
-  // 11 Sleep out & booster on
-  //
-  // B1 In normal mode (Full colors)
-  // 05
-  // 3C
-  // 3C
-  //
-  // B2 In idle mode (8 colors)
-  // 05
-  // 3C
-  // 3C
-  //
-  // B3 In partial mode + full colors
-  // 05
-  // 3C
-  // 3C
-  // 05
-  // 3C
-  // 3C
-  //
-  // B4 Display inversion control
-  // 03
-  //
-  // C0 Power control setting
-  // 28
-  // 08
-  // 04
-  //
-  // C1 Power control setting
-  // C0
-  //
-  // C2 In normal mode (Full colors)
-  // 0D
-  // 00
-  //
-  // C3 In idle mode (8-colors)
-  // 8D
-  // 2A
-  //
-  // C4 In partial mode + Full colors
-  // 8D
-  // EE
-  //
-  // C5 VCOM control 1
-  // 1A
-  //
-  // 3A Interface pixel format
-  // 05
-  //
-  // 36 Memory data access control
-  // C0
-  //
-  // E0 Set gamma adjustment
-  // 04
-  // 22
-  // 07
-  // 0A
-  // 2E
-  // 30
-  // 25
-  // 2A
-  // 28
-  // 26
-  // 2E
-  // 3A
-  // 00
-  // 01
-  // 03
-  // 13
-  //
-  // E1 Set gamma adjustment
-  // 04
-  // 16
-  // 06
-  // 0D
-  // 2D
-  // 26
-  // 23
-  // 27
-  // 27
-  // 25
-  // 2D
-  // 3B
-  // 00
-  // 01
-  // 04
-  // 13
-  //
-  // 29 Display on
-  //
-  // 36 Memory data access control
-  // 05
-  //
-  // 36 Memory data access control
-  // 65
-  //
-  // 2A Column address set
-  // 00
-  // 01
-  // 00
-  // A0
-  //
-  // 2B Row address set
-  // 00
-  // 02
-  // 00
-  // 81
-  //
-  // 2C Memory write
-  // 00
-  // (Pixel data ...)
-
-  printf("Configuring display!\n");
-
-  // Sleep out & booster on
-  write_byte(0, 0x11);
-
-  // Framerate control
-  // In normal mode (Full colors)
-  uint8_t w_data1[4] = {0xB1, 0x05, 0x3C, 0x3C};
-  send_command(w_data1, 4);
-
-  // In idle mode (8 colors)
-  uint8_t w_data2[4] = {0xB2, 0x05, 0x3C, 0x3C};
-  send_command(w_data2, 4);
-
-  // In partial mode + full colors
-  uint8_t w_data3[7] = {0xB3, 0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C};
-  send_command(w_data3, 7);
-
-  // Display inversion control
-  uint8_t w_data4[2] = {0xB4, 0x03};
-  send_command(w_data4, 2);
-
-  // Power control setting
-  uint8_t w_data5[4] = {0xC0, 0x28, 0x08, 0x04};
-  send_command(w_data5, 4);
-
-  // Power control setting
-  uint8_t w_data6[2] = {0xC1, 0xC0};
-  send_command(w_data6, 2);
-
-  // In normal mode (Full colors)
-  uint8_t w_data7[3] = {0xC2, 0x0D, 0x00};
-  send_command(w_data7, 3);
-
-  // In idle mode (8 colors)
-  uint8_t w_data8[3] = {0xC3, 0x8D, 0x2A};
-  send_command(w_data8, 3);
-
-  // In partial mode + Full colors
-  uint8_t w_data9[3] = {0xC4, 0x8D, 0xEE};
-  send_command(w_data9, 3);
-
-  // VCOM control 1
-  uint8_t w_data10[2] = {0xC5, 0x1A};
-  send_command(w_data10, 2);
-
-  // Interface pixel format
-  // 0x03 = 12-bit/pixel (4R, 4G, 4B)
-  // 0x05 = 16-bit/pixel (5R, 6G, 5B)
-  // 0x06 = 18-bit/pixel (6R 2-, 6G 2-, 6B 2-)
-  uint8_t w_data11[2] = {0x3A, 0x05};
-  send_command(w_data11, 2);
-
-  // Set gamma adjustment
-  uint8_t w_data13[17] = {0xE0, 0x04, 0x22, 0x07, 0x0A, 0x2E, 0x30, 0x25, 0x2A, 0x28, 0x26, 0x2E, 0x3A, 0x00, 0x01, 0x03, 0x13};
-  send_command(w_data13, 17);
-
-  // Set gamma adjustment
-  uint8_t w_data14[17] = {0xE1, 0x04, 0x16, 0x06, 0x0D, 0x2D, 0x26, 0x23, 0x27, 0x27, 0x25, 0x2D, 0x3B, 0x00, 0x01, 0x04, 0x13};
-  send_command(w_data14, 17);
-
-  // Display on
-  write_byte(0, 0x29);
-
-  // Memory data access control
-  // MY, MX, MV, ML, RGB, MH, -, -
-  // MY = Row Address Order
-  // MX = Column Address Order
-  // MV = Row/Column Exchange
-  // ML = Vertical Refresh Order
-  // RGB = RGB-BGR order (0 = RGB)
-  // MH = Horizontal Refresh Order
-  uint8_t w_data16[2] = {0x36, 0x00};
-  send_command(w_data16, 2);
-
-  // Display is from (inclusive):
-  // XS = 0x02 to XE = 0x81
-  // YS = 0x01 to YE = 0xA0
-  // Column address set {XS1, XS0, XE1, XE0}
-  uint8_t w_data17[5] = {0x2A, 0x00, 0x02, 0x00, 0x81};
-  send_command(w_data17, 5);
-
-  // Row address set {YS1, YS0, YE1, YE0}
-  uint8_t w_data18[5] = {0x2B, 0x00, 0x01, 0x00, 0xA0};
-  send_command(w_data18, 5);
-  printf("Display configured!\n");
-
-  // Test write
-  printf("Writing to display!\n");
-
-  // Display buffer
-  // 2 bytes per pixel, 128 x 160 = 20480 pixels, 40960 bytes
-  uint8_t * display_buffer = pvPortMalloc(sizeof(uint8_t) * 40960);
-  for (int i = 0; i < 20480; i++) {
-    display_buffer[2 * i] = 0xF8;
-    display_buffer[(2 * i) + 1] = 0x00;
-  }
-
-  // Write buffer to display
-  write_segment(display_buffer, 0, 0, 128, 160);
-
-  // Write blue to middle of display
-  for (int i = 0; i < 20480; i++) {
-    display_buffer[2 * i] = 0x00;
-    display_buffer[(2 * i) + 1] = 0x1F;
-  }
-  write_segment(display_buffer, 42, 40, 44, 80);
-
-  vPortFree(display_buffer);
-
   // Keypad init
-  printf("Init keypad\n");
-  gpio_init(COL1);
-  gpio_set_dir(COL1, GPIO_OUT);
-  gpio_put(COL1, 0);
+  keys_init();
 
-  gpio_init(COL2);
-  gpio_set_dir(COL2, GPIO_OUT);
-  gpio_put(COL2, 0);
-
-  gpio_init(COL3);
-  gpio_set_dir(COL3, GPIO_OUT);
-  gpio_put(COL3, 0);
-
-  gpio_init(ROW1);
-  gpio_set_dir(ROW1, GPIO_IN);
-  gpio_pull_down(ROW1);
-
-  gpio_init(ROW2);
-  gpio_set_dir(ROW2, GPIO_IN);
-  gpio_pull_down(ROW2);
-
-  gpio_init(ROW3);
-  gpio_set_dir(ROW3, GPIO_IN);
-  gpio_pull_down(ROW3);
-
-  gpio_init(ROW4);
-  gpio_set_dir(ROW4, GPIO_IN);
-  gpio_pull_down(ROW4);
+  // Display init
+  display_init();
 
   // LVGL setup
   lv_init();
-
   lv_tick_set_cb(xTaskGetTickCount);
 
   lv_display_t * display = lv_display_create(128, 160);
+  lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565_SWAPPED);
 
   uint8_t * buf = pvPortMalloc(BUF_SIZE);
   lv_display_set_buffers(display, buf, NULL, BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-
   lv_display_set_flush_cb(display, flush_cb);
 
-  global_label = lv_label_create(lv_screen_active());
-  lv_label_set_text(global_label, "Hello LVGL!");
+  // Init style
+  lv_style_init(&global_style);
+  lv_style_set_radius(&global_style, 5);
 
-  /*
-  printf("Starting lv timer handler\n");
-  lv_timer_handler();
-  printf("Returned from lv timer handler\n");
-  */
-}
+  lv_style_set_width(&global_style, 128);
+  lv_style_set_height(&global_style, 160);
 
-void reset_display() {
-  gpio_put(RST, 0);
-  sleep_ms(RST_DELAY);
-  gpio_put(RST, 1);
-  sleep_ms(RST_DELAY);
-}
+  lv_style_set_pad_ver(&global_style, 10);
+  lv_style_set_pad_hor(&global_style, 10);
 
-void write_byte(bool dc, uint8_t data) {
-  gpio_put(DC, dc);
-  gpio_put(CS, 0);
+  lv_style_set_x(&global_style, 0);
+  lv_style_set_y(&global_style, 0);
 
-  spi_write_blocking(spi0, &data, 1);
+  lv_style_set_bg_opa(&global_style, LV_OPA_COVER);
+  static lv_grad_dsc_t grad;
+  grad.dir = LV_GRAD_DIR_VER;
+  grad.stops_count = 2;
+  grad.stops[0].color = lv_palette_lighten(LV_PALETTE_GREY, 1);
+  grad.stops[0].opa = LV_OPA_COVER;
+  grad.stops[1].color = lv_palette_main(LV_PALETTE_BLUE);
+  grad.stops[1].opa = LV_OPA_COVER;
 
-  gpio_put(DC, 1);
-  gpio_put(CS, 1);
+  /*Shift the gradient to the bottom*/
+  grad.stops[0].frac  = 80;
+  grad.stops[1].frac  = 160;
 
-  sleep_ms(SPI_DELAY);
-}
+  lv_style_set_bg_grad(&global_style, &grad);
 
-void send_command(uint8_t * data, size_t len) {
-  gpio_put(DC, 0);
-  gpio_put(CS, 0);
+  // Make object
+  global_obj = lv_obj_create(lv_screen_active());
+  lv_obj_add_style(global_obj, &global_style, 0);
 
-  spi_write_blocking(spi0, data, 1);
-
-  gpio_put(DC, 1);
-
-  if (len > 1) {
-    spi_write_blocking(spi0, &data[1], len - 1);
-  }
-
-  gpio_put(CS, 1);
-
-  sleep_ms(SPI_DELAY);
-}
-
-void send_data(uint8_t * data, size_t len) {
-  gpio_put(DC, 1);
-  gpio_put(CS, 0);
-
-  spi_write_blocking(spi0, data, len);
-
-  gpio_put(DC, 1);
-  gpio_put(CS, 1);
-
-  sleep_ms(SPI_DELAY);
-}
-
-void write_segment(uint8_t * buffer, int x, int y, int w, int h) {
-  uint8_t xlimits[5] = {0x2A, 0x00, (uint8_t) (x + 2), 0x00, (uint8_t) (x + w + 1)};
-  send_command(xlimits, 5);
-
-  uint8_t ylimits[5] = {0x2B, 0x00, (uint8_t) (y + 1), 0x00, (uint8_t) (y + h)};
-  send_command(ylimits, 5);
-
-  write_byte(0, 0x2C);
-  send_data(buffer, 2 * w * h);
+  // Make label
+  global_label = lv_label_create(global_obj);
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
   write_segment(px_buf, area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
 
   lv_display_flush_ready(disp);
-}
-
-char get_key() {
-  // Col 1
-  gpio_put(COL1, 1);
-  sleep_ms(1);
-  if (gpio_get(ROW1)) {
-    gpio_put(COL1, 0);
-    return '1';
-  } else if (gpio_get(ROW2)) {
-    gpio_put(COL1, 0);
-    return '4';
-  } else if (gpio_get(ROW3)) {
-    gpio_put(COL1, 0);
-    return '7';
-  } else if (gpio_get(ROW4)) {
-    gpio_put(COL1, 0);
-    return '*';
-  }
-  gpio_put(COL1, 0);
-
-  // Col 2
-  gpio_put(COL2, 1);
-  sleep_ms(1);
-  if (gpio_get(ROW1)) {
-    gpio_put(COL2, 0);
-    return '2';
-  } else if (gpio_get(ROW2)) {
-    gpio_put(COL2, 0);
-    return '5';
-  } else if (gpio_get(ROW3)) {
-    gpio_put(COL2, 0);
-    return '8';
-  } else if (gpio_get(ROW4)) {
-    gpio_put(COL2, 0);
-    return '0';
-  }
-  gpio_put(COL2, 0);
-
-  // Col 3
-  gpio_put(COL3, 1);
-  sleep_ms(1);
-  if (gpio_get(ROW1)) {
-    gpio_put(COL3, 0);
-    return '3';
-  } else if (gpio_get(ROW2)) {
-    gpio_put(COL3, 0);
-    return '6';
-  } else if (gpio_get(ROW3)) {
-    gpio_put(COL3, 0);
-    return '9';
-  } else if (gpio_get(ROW4)) {
-    gpio_put(COL3, 0);
-    return '#';
-  }
-  gpio_put(COL3, 0);
-
-  return ' ';
 }
 
 void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {

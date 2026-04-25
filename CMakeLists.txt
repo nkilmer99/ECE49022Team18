@@ -33,6 +33,8 @@ add_subdirectory(lvgl)
 add_executable(main
   src/main.c
   src/ui.c
+  src/display.c
+  src/keys.c
   src/motor_control.c
   src/read_temp.c
   src/weight_sensor.c
