@@ -3,8 +3,12 @@
 
 #define PWM_PIN 20
 
+int cur_mode = OFF_MODE;
+
 void motor_control(int mode)
 {
+    cur_mode = mode;
+
     // Set PWM_PIN to output PWM
     gpio_set_function(PWM_PIN, GPIO_FUNC_PWM);
 
@@ -38,4 +42,8 @@ void motor_control(int mode)
     {
         pwm_set_chan_level(slice, channel, 0); // PWM OFF
     }
+}
+
+int get_mode() {
+  return cur_mode;
 }

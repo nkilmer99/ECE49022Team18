@@ -139,16 +139,15 @@ float DS18B20_read_temperature()
     return temp_c;
 }
 
-// Delete Later (Sample Usage)
-void temp_tester()
-{
-    float temperature;
-    temperature = DS18B20_read_temperature(); // Store temperature in Float
-    printf("Temperature: %.4f °C\n", temperature); // Serial print temperature
-}
+float last_temperature = 0.0;
 
 void temp_worker(async_context_t *context, async_at_time_worker_t *worker)
 {
-    async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for 50 ms in future
-    temp_tester();
+    async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for x ms in future
+
+    last_temperature = DS18B20_read_temperature();
+}
+
+float get_temp() {
+  return last_temperature;
 }

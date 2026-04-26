@@ -1,7 +1,13 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "debug_screen.h"
 #include "display.h"
+#include "keys.h"
+#include "motor_control.h"
+#include "weight_sensor.h"
+#include "read_temp.h"
+#include "pid_temp.h"
 
 #include "FreeRTOS.h"
 #include "lvgl.h"
@@ -139,6 +145,49 @@ void scroll_down() {
 }
 
 void debug_update_screen(char key) {
+  // Update buffers
+  for (int i = 0; i < STATS_SIZE; i++) {
+    int len = 0;
+
+    switch (i) {
+      case STATS_RAW_KEY:   len = sprintf(tmp_buf, "RKEY: %c",   get_raw_key());    break;
+      case STATS_KEY:       len = sprintf(tmp_buf, "KEY: %c",    get_key());        break;
+      case STATS_WEIGHT:    len = sprintf(tmp_buf, "WGT: %.2f",  get_weight());     break;
+      case STATS_TEMP:      len = sprintf(tmp_buf, "TEMP: %.1f", get_temp());       break;
+      case STATS_TEMP_P:    len = sprintf(tmp_buf, "P: %.2f",    get_prev_error()); break;
+      case STATS_TEMP_I:    len = sprintf(tmp_buf, "I: %.2f",    get_integral());   break;
+      case STATS_TEMP_D:    len = sprintf(tmp_buf, "D: %.2f",    get_derivative()); break;
+      case STATS_TEMP_PID:  len = sprintf(tmp_buf, "PID: %.1f",  get_pid_output()); break;
+      default: continue;
+    }
+
+    if (len > 99) printf("ERROR: OVERWRITE TMP_BUF\n");
+    if (strcmp(tmp_buf, stats[i].buf) != 0) {
+      strcpy(stats[i].buf, tmp_buf);
+      lv_label_set_text_static(stats[i].lv_obj, stats[i].buf);
+    }
+  }
+
+  for (int i = 0; i < INPUTS_SIZE; i++) {
+    int len = 0;
+
+    switch (i) {
+      case INPUTS_MOTOR_MODE:   len = sprintf(tmp_buf, "MOTR: %d",    get_mode());        break;
+      case INPUTS_TEMP_TARGET:  len = sprintf(tmp_buf, "TTMP: %.1f",  get_target_temp()); break;
+      case INPUTS_TEMP_P:       len = sprintf(tmp_buf, "KP: %.6f",    get_kp());          break;
+      case INPUTS_TEMP_I:       len = sprintf(tmp_buf, "Ki: %.6f",    get_ki());          break;
+      case INPUTS_TEMP_D:       len = sprintf(tmp_buf, "Kd: %.6f",    get_kd());          break;
+      case INPUTS_TIMER: continue;
+      default: continue;
+    }
+
+    if (len > 99) printf("ERROR: OVERWRITE TMP_BUF\n");
+    if (strcmp(tmp_buf, inputs[i].buf) != 0) {
+      strcpy(inputs[i].buf, tmp_buf);
+      lv_textarea_set_placeholder_text(inputs[i].lv_obj, inputs[i].buf);
+    }
+  }
+
   if (key == '#') {
     scroll_down();
   }

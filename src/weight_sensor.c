@@ -28,6 +28,8 @@ statement
 
 int32_t OFFSET = 0; // Initialize global OFFSET variable
 
+float last_kg_reading = 0.0;
+
 // Initialize Pins for SCK and DATA
 void HX711_init()
 {
@@ -109,30 +111,13 @@ float HX711_read_kg()
     return kg_reading;
 }
 
-// Tare for 10 second timer
-void tare_10s_tester()
-{
-    // Taring for 10 Seconds to Zero Scale
-    for (int i = 0; i < 1; i++)
-    {
-        printf("Taring %d...\n", i + 1);
-        sleep_ms(1000);
-    }
-    HX711_tare();
-}
-
-// Read kg or raw
-void read_tester()
-{
-    float weight = HX711_read_kg();
-    printf("Weight: %.2f kg\n", weight);
-    //int32_t raw = HX711_read_raw_adc(); //Uncomment for Calibration
-    //printf("Raw: %ld\n", raw);
-}
-
-
 void weight_worker(async_context_t *context, async_at_time_worker_t *worker) {
   async_context_add_at_time_worker_in_ms(context, worker, 500); // Reschedule self for x ms in the future
 
-  read_tester();
+  // Update kg reading
+  last_kg_reading = HX711_read_kg();
+}
+
+float get_weight() {
+  return last_kg_reading;
 }

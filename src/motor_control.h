@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 
 void motor_control(int mode);
+int get_mode();
 
 #define MAX_MODE 2
 #define CONTROLLED_MODE 1

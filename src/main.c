@@ -70,29 +70,29 @@ async_at_time_worker_t ui_timeout     = { .do_work = ui_worker };
 async_at_time_worker_t key_timeout    = { .do_work = key_worker };
 async_at_time_worker_t temp_timeout   = { .do_work = temp_worker };
 async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
+async_at_time_worker_t pid_timeout    = { .do_work = pid_worker };
 
 void main_task(__unused void *params) {
   printf("Start main task\n");
   async_context_t *context = create_async_context();
 
-  printf("Running ui_init\n");
-  ui_init();
-  printf("Running DS_18B20_init\n");
-  DS18B20_init();
-  printf("Setting motor mode\n");
-  motor_control(CONTROLLED_MODE);
-  printf("Running hx711 init\n");
-  HX711_init();
-  printf("Running 10s tare\n");
-  tare_10s_tester();
+  DS18B20_init(); // Temp
 
+  motor_control(OFF_MODE);
+
+  HX711_init(); // Weight
+  HX711_tare();
+
+  pid_init();
+
+  ui_init();
 
   // start the worker running
-  printf("Starting workers\n");
   async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &key_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
   async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
+  async_context_add_at_time_worker_in_ms(context, &pid_timeout, 0);
 
   // start the led blinking
   printf("Starting led\n");
