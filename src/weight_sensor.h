@@ -1,11 +1,6 @@
 #ifndef WEIGHT_SENSOR_H
 #define WEIGHT_SENSOR_H
 
-#include "pico/stdlib.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "pico/async_context_freertos.h"
 
 void HX711_init();

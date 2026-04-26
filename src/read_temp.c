@@ -3,7 +3,7 @@
 #include "read_temp.h"
 
 #define TEMPSENSOR_PIN 21 // Set Temp Sensor Pin (Set in header file as well)
-#define ERROR -999.0f // Default Error Number for error cases
+#define TEMP_ERROR -999.0f // Default TEMP_ERROR Number for TEMP_ERROR cases
 
 /*
 This code reads temperature in Celsius using 1 DS18B20 Sensor.
@@ -112,7 +112,7 @@ float DS18B20_read_temperature()
     if (presence_signal == 0)
     {
         printf("<Sensor Undetected>\n"); // Serial Print Undetected Sensor
-        return ERROR;
+        return TEMP_ERROR;
     }
 
     onewire_write_byte(0xCC); // Skip ROM on datasheet command
@@ -125,7 +125,7 @@ float DS18B20_read_temperature()
     if (presence_signal == 0)
     {
         printf("<Sensor Undetected>\n"); // Serial Print Undetected Sensor
-        return ERROR;
+        return TEMP_ERROR;
     }
 
     onewire_write_byte(0xCC); // Skip ROM

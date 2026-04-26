@@ -7,66 +7,66 @@
 
 #include "FreeRTOS.h"
 
-#define RST_DELAY 100 // ms
-#define SPI_DELAY 0
-#define CS   17
-#define MOSI 19
-#define MISO 16
-#define SCLK 18
-#define DC   10
-#define BLK  9
-#define RST  11
+#define DISPLAY_RST_DELAY 100 // ms
+#define DISPLAY_SPI_DELAY 0
+#define DISPLAY_CS   17
+#define DISPLAY_MOSI 19
+#define DISPLAY_MISO 16
+#define DISPLAY_SCLK 18
+#define DISPLAY_DC   10
+#define DISPLAY_BLK  9
+#define DISPLAY_RST  11
 
 // Reset display
 void reset_display() {
-  gpio_put(RST, 0);
-  sleep_ms(RST_DELAY);
-  gpio_put(RST, 1);
-  sleep_ms(RST_DELAY);
+  gpio_put(DISPLAY_RST, 0);
+  sleep_ms(DISPLAY_RST_DELAY);
+  gpio_put(DISPLAY_RST, 1);
+  sleep_ms(DISPLAY_RST_DELAY);
 }
 
 // Send byte to display
 void write_byte(bool dc, uint8_t data) {
-  gpio_put(DC, dc);
-  gpio_put(CS, 0);
+  gpio_put(DISPLAY_DC, dc);
+  gpio_put(DISPLAY_CS, 0);
 
   spi_write_blocking(spi0, &data, 1);
 
-  gpio_put(DC, 1);
-  gpio_put(CS, 1);
+  gpio_put(DISPLAY_DC, 1);
+  gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(SPI_DELAY);
+  sleep_ms(DISPLAY_SPI_DELAY);
 }
 
 // Send command to display
 void send_command(uint8_t * data, size_t len) {
-  gpio_put(DC, 0);
-  gpio_put(CS, 0);
+  gpio_put(DISPLAY_DC, 0);
+  gpio_put(DISPLAY_CS, 0);
 
   spi_write_blocking(spi0, data, 1);
 
-  gpio_put(DC, 1);
+  gpio_put(DISPLAY_DC, 1);
 
   if (len > 1) {
     spi_write_blocking(spi0, &data[1], len - 1);
   }
 
-  gpio_put(CS, 1);
+  gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(SPI_DELAY);
+  sleep_ms(DISPLAY_SPI_DELAY);
 }
 
 // Send data to display
 void send_data(uint8_t * data, size_t len) {
-  gpio_put(DC, 1);
-  gpio_put(CS, 0);
+  gpio_put(DISPLAY_DC, 1);
+  gpio_put(DISPLAY_CS, 0);
 
   spi_write_blocking(spi0, data, len);
 
-  gpio_put(DC, 1);
-  gpio_put(CS, 1);
+  gpio_put(DISPLAY_DC, 1);
+  gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(SPI_DELAY);
+  sleep_ms(DISPLAY_SPI_DELAY);
 }
 
 // Write rectangular buffer to region on display
@@ -86,29 +86,29 @@ void display_init() {
   printf("Spi init\n");
   spi_init(spi0, 60 * 1000 * 1000);
 
-  gpio_set_function(SCLK, GPIO_FUNC_SPI);
-  gpio_set_function(MOSI, GPIO_FUNC_SPI);
-  gpio_set_function(MISO, GPIO_FUNC_SPI);
+  gpio_set_function(DISPLAY_SCLK, GPIO_FUNC_SPI);
+  gpio_set_function(DISPLAY_MOSI, GPIO_FUNC_SPI);
+  gpio_set_function(DISPLAY_MISO, GPIO_FUNC_SPI);
 
   spi_set_format(spi0,8,0,0,SPI_MSB_FIRST); // 8 data bits
 
-  gpio_init(CS);
-  gpio_set_dir(CS, GPIO_OUT);
-  gpio_put(CS, 1);
+  gpio_init(DISPLAY_CS);
+  gpio_set_dir(DISPLAY_CS, GPIO_OUT);
+  gpio_put(DISPLAY_CS, 1);
 
-  gpio_init(DC);
-  gpio_set_dir(DC, GPIO_OUT);
-  gpio_put(DC, 0);
+  gpio_init(DISPLAY_DC);
+  gpio_set_dir(DISPLAY_DC, GPIO_OUT);
+  gpio_put(DISPLAY_DC, 0);
 
-  gpio_init(BLK);
-  gpio_set_dir(BLK, GPIO_OUT);
-  gpio_put(BLK, 0);
+  gpio_init(DISPLAY_BLK);
+  gpio_set_dir(DISPLAY_BLK, GPIO_OUT);
+  gpio_put(DISPLAY_BLK, 0);
 
-  gpio_init(RST);
-  gpio_set_dir(RST, GPIO_OUT);
-  gpio_put(RST, 1);
+  gpio_init(DISPLAY_RST);
+  gpio_set_dir(DISPLAY_RST, GPIO_OUT);
+  gpio_put(DISPLAY_RST, 1);
   reset_display();
-  gpio_put(BLK, 1);
+  gpio_put(DISPLAY_BLK, 1);
 
   // DC = 0 when command, 1 when data
   // RST is active low
