@@ -41,6 +41,7 @@ add_executable(main
   src/read_temp.c
   src/weight_sensor.c
   src/errors.c
+  src/pid_temp.c
 )
 
 target_include_directories(main PRIVATE

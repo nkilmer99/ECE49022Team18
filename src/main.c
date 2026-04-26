@@ -12,6 +12,7 @@
 #include "read_temp.h"
 #include "motor_control.h"
 #include "weight_sensor.h"
+#include "pid_temp.h"
 
 // Delay between led blinking
 #define LED_DELAY_MS 2000
@@ -41,17 +42,14 @@ static void init_led(void) {
 
 void blink_task(__unused void *params) {
   bool on = false;
-  //printf("blink_task starts\n");
   init_led();
   while (true) {
     static int last_core_id = -1;
     if (portGET_CORE_ID() != last_core_id) {
       last_core_id = portGET_CORE_ID();
-      //printf("blink task is on core %d\n", last_core_id);
     }
     set_led(on);
     on = !on;
-
     sleep_ms(LED_DELAY_MS);
   }
 }
@@ -61,16 +59,16 @@ static async_context_freertos_t async_context_instance;
 // Create an async context
 static async_context_t *create_async_context(void) {
   async_context_freertos_config_t config = async_context_freertos_default_config();
-  config.task_priority = WORKER_TASK_PRIORITY; // defaults to ASYNC_CONTEXT_DEFAULT_FREERTOS_TASK_PRIORITY
-  config.task_stack_size = WORKER_TASK_STACK_SIZE; // defaults to ASYNC_CONTEXT_DEFAULT_FREERTOS_TASK_STACK_SIZE
+  config.task_priority = WORKER_TASK_PRIORITY;
+  config.task_stack_size = WORKER_TASK_STACK_SIZE;
   if (!async_context_freertos_init(&async_context_instance, &config))
     return NULL;
   return &async_context_instance.core;
 }
 
-async_at_time_worker_t ui_timeout = { .do_work = ui_worker };
-async_at_time_worker_t key_timeout = { .do_work = key_worker };
-async_at_time_worker_t temp_timeout = { .do_work = temp_worker };
+async_at_time_worker_t ui_timeout     = { .do_work = ui_worker };
+async_at_time_worker_t key_timeout    = { .do_work = key_worker };
+async_at_time_worker_t temp_timeout   = { .do_work = temp_worker };
 async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
 
 void main_task(__unused void *params) {
@@ -87,6 +85,7 @@ void main_task(__unused void *params) {
   HX711_init();
   printf("Running 10s tare\n");
   tare_10s_tester();
+
 
   // start the worker running
   printf("Starting workers\n");
@@ -113,7 +112,7 @@ void main_task(__unused void *params) {
   async_context_deinit(context);
 }
 
-void vLaunch( void) {
+void vLaunch(void) {
   TaskHandle_t task;
 
   xTaskCreate(main_task, "MainThread", MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIORITY, &task);
@@ -125,7 +124,7 @@ void vLaunch( void) {
   vTaskStartScheduler();
 }
 
-int main( void )
+int main(void)
 {
   stdio_init_all();
   printf("Start1\n");
