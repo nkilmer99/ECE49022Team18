@@ -1,6 +1,9 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #define WIDTH 128
 #define HEIGHT 160
 #define BYTES_PER_PIXEL 2

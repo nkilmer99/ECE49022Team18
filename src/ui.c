@@ -6,13 +6,13 @@
 #include "prod_screen.h"
 #include "debug_screen.h"
 
-#define BUF_SIZE WIDTH * HEIGHT * BYTES_PER_PIXEL
+#define BUF_SIZE (WIDTH * HEIGHT * BYTES_PER_PIXEL)
 
-bool debug = false;
+bool debug = true; // TODO: set to false
 
 #define REFRESH_RATE 20 // Every x ms
 #define HOLD_TIME 3000 // ms
-#define HOLD_THRESH HOLD_TIME / REFRESH_RATE
+#define HOLD_THRESH (HOLD_TIME / REFRESH_RATE)
 uint32_t hold_count = 0;
 
 void ui_init() {
@@ -38,7 +38,8 @@ void ui_init() {
   debug_screen_init();
 
   // Set prod as screen
-  prod_set_active();
+  if (debug) debug_set_active();
+  else prod_set_active();
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
