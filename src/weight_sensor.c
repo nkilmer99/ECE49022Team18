@@ -111,7 +111,7 @@ float HX711_read_kg()
 void tare_10s_tester()
 {
     // Taring for 10 Seconds to Zero Scale
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 1; i++)
     {
         printf("Taring %d...\n", i + 1);
         sleep_ms(1000);
