@@ -3,14 +3,27 @@
 #include "debug_screen.h"
 #include "display.h"
 
+#include "FreeRTOS.h"
 #include "lvgl.h"
+
+#define LABEL_HEIGHT 10
+#define LABEL_PADDING 8
+#define LABEL_DIFF (LABEL_HEIGHT + LABEL_PADDING)
+#define MAX_LINES (HEIGHT / LABEL_DIFF)
+
+#define AREA_HEIGHT 18
+#define AREA_PADDING 0
+#define AREA_DIFF (AREA_HEIGHT + AREA_PADDING)
+
+#define LINE_BUF_SIZE 100
 
 lv_obj_t * debug_screen = NULL;
 
 struct line {
   char * buf;
-  size_t size;
   size_t cursor;
+
+  lv_obj_t * lv_obj;
 };
 
 struct line * stats = NULL;
@@ -39,23 +52,15 @@ enum {
   INPUTS_SIZE
 };
 
-#define LABEL_HEIGHT 10
-#define LABEL_PADDING 6
-#define LABEL_DIFF (LABEL_HEIGHT + LABEL_PADDING)
-#define MAX_LINES (HEIGHT / LABEL_DIFF)
-
-#define AREA_HEIGHT 13
-#define AREA_PADDING 3
-#define AREA_DIFF (AREA_HEIGHT + AREA_PADDING)
-
 uint32_t scroll_pos = 0;
+char * tmp_buf;
 
 void debug_screen_init() {
   //Make screen
   debug_screen = lv_obj_create(NULL);
 
-  // Make stats
-  //stats = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
+  // Alloc stats
+  stats = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
 
   // Add stats to screen
   for (int i = 0; i < STATS_SIZE; i++) {
@@ -63,6 +68,10 @@ void debug_screen_init() {
     lv_obj_set_x(label, 2);
     lv_obj_set_y(label, i * LABEL_DIFF);
     lv_label_set_text_fmt(label, "%d", i);
+
+    stats[i].buf = pvPortMalloc(LINE_BUF_SIZE);
+    stats[i].cursor = 0;
+    stats[i].lv_obj = label;
   }
 
   // Make zero padding, small border style
@@ -75,6 +84,9 @@ void debug_screen_init() {
 
   lv_style_set_border_width(&small_style, 1);
 
+  // Alloc inputs
+  inputs = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
+
   // Add inputs to screen
   for (int i = 0; i < INPUTS_SIZE; i++) {
     lv_obj_t * textarea = lv_textarea_create(debug_screen);
@@ -82,8 +94,15 @@ void debug_screen_init() {
     lv_obj_set_y(textarea, (STATS_SIZE * LABEL_DIFF) + (i * AREA_DIFF));
     lv_textarea_set_placeholder_text(textarea, "Placeholder");
     lv_obj_add_style(textarea, &small_style, 0);
-    lv_obj_set_size(textarea, 124, 16);
+    lv_obj_set_size(textarea, 124, 18);
+
+    inputs[i].buf = pvPortMalloc(LINE_BUF_SIZE);
+    inputs[i].cursor = 0;
+    inputs[i].lv_obj = textarea;
   }
+
+  // Alloc tmp_buf
+  tmp_buf = pvPortMalloc(LINE_BUF_SIZE);
 }
 
 void debug_set_active() {
