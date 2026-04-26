@@ -12,6 +12,8 @@ if ! sudo true; then
   exit 1
 fi
 
+echo "Flashing..."
+
 MNTPOINT=$(mktemp -d)
 
 sudo mount $BLKDEV $MNTPOINT
