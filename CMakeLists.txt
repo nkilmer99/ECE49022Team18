@@ -40,6 +40,7 @@ add_executable(main
   src/motor_control.c
   src/read_temp.c
   src/weight_sensor.c
+  src/errors.c
 )
 
 target_include_directories(main PRIVATE

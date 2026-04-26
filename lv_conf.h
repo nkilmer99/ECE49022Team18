@@ -17,6 +17,9 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+#define LV_MEM_CUSTOM 0
+#define LV_MEM_ADR 0
+
 /* If you need to include anything here, do it inside the `__ASSEMBLY__` guard */
 #if  0 && defined(__ASSEMBLY__)
 //#include "my_include.h"
@@ -69,7 +72,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /** Size of memory available for `lv_malloc()` in bytes (>= 2kB) */
-    #define LV_MEM_SIZE (64 * 1024U)          /**< [bytes] */
+    #define LV_MEM_SIZE (128 * 1024U)          /**< [bytes] */
 
     /** Size of the memory expand for `lv_malloc()` in bytes */
     #define LV_MEM_POOL_EXPAND_SIZE 0
@@ -79,7 +82,7 @@
     /* Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc */
     #if LV_MEM_ADR == 0
         #undef LV_MEM_POOL_INCLUDE
-        #undef LV_MEM_POOL_ALLOC
+        #define LV_MEM_POOL_ALLOC pvPortMalloc
     #endif
 #endif  /*LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN*/
 
@@ -785,19 +788,19 @@
  * */
 #define LV_WIDGETS_HAS_DEFAULT_VALUE  1
 
-#define LV_USE_ANIMIMG    1
+#define LV_USE_ANIMIMG    0
 
-#define LV_USE_ARC        1
+#define LV_USE_ARC        0
 
-#define LV_USE_ARCLABEL  1
+#define LV_USE_ARCLABEL  0
 
 #define LV_USE_BAR        1
 
 #define LV_USE_BUTTON        1
 
-#define LV_USE_BUTTONMATRIX  1
+#define LV_USE_BUTTONMATRIX  0
 
-#define LV_USE_CALENDAR   1
+#define LV_USE_CALENDAR   0
 #if LV_USE_CALENDAR
     #define LV_CALENDAR_WEEK_STARTS_MONDAY 0
     #if LV_CALENDAR_WEEK_STARTS_MONDAY
@@ -812,19 +815,19 @@
     #define LV_USE_CALENDAR_CHINESE 0
 #endif  /*LV_USE_CALENDAR*/
 
-#define LV_USE_CANVAS     1
+#define LV_USE_CANVAS     0
 
-#define LV_USE_CHART      1
+#define LV_USE_CHART      0
 
 #define LV_USE_CHECKBOX   1
 
 #define LV_USE_DROPDOWN   1   /**< Requires: lv_label */
 
-#define LV_USE_IMAGE      1   /**< Requires: lv_label */
+#define LV_USE_IMAGE      0   /**< Requires: lv_label */
 
-#define LV_USE_IMAGEBUTTON     1
+#define LV_USE_IMAGEBUTTON     0
 
-#define LV_USE_KEYBOARD   1
+#define LV_USE_KEYBOARD   0
 
 #define LV_USE_LABEL      1
 #if LV_USE_LABEL
@@ -841,15 +844,15 @@
 
 #define LV_USE_LOTTIE     0  /**< Requires: lv_canvas, thorvg */
 
-#define LV_USE_MENU       1
+#define LV_USE_MENU       0
 
-#define LV_USE_MSGBOX     1
+#define LV_USE_MSGBOX     0
 
-#define LV_USE_ROLLER     1   /**< Requires: lv_label */
+#define LV_USE_ROLLER     0   /**< Requires: lv_label */
 
-#define LV_USE_SCALE      1
+#define LV_USE_SCALE      0
 
-#define LV_USE_SLIDER     1   /**< Requires: lv_bar */
+#define LV_USE_SLIDER     0   /**< Requires: lv_bar */
 
 #define LV_USE_SPAN       1
 #if LV_USE_SPAN
@@ -857,15 +860,15 @@
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
 #endif
 
-#define LV_USE_SPINBOX    1
+#define LV_USE_SPINBOX    0
 
-#define LV_USE_SPINNER    1
+#define LV_USE_SPINNER    0
 
 #define LV_USE_SWITCH     1
 
-#define LV_USE_TABLE      1
+#define LV_USE_TABLE      0
 
-#define LV_USE_TABVIEW    1
+#define LV_USE_TABVIEW    0
 
 #define LV_USE_TEXTAREA   1   /**< Requires: lv_label */
 #if LV_USE_TEXTAREA != 0
@@ -874,7 +877,7 @@
 
 #define LV_USE_TILEVIEW   1
 
-#define LV_USE_WIN        1
+#define LV_USE_WIN        0
 
 #define LV_USE_3DTEXTURE  0
 
