@@ -17,6 +17,7 @@ echo "Flashing..."
 MNTPOINT=$(mktemp -d)
 
 sudo mount $BLKDEV $MNTPOINT
+du -b build/main.uf2
 sudo cp build/main.uf2 $MNTPOINT
 sync
 sudo umount $MNTPOINT

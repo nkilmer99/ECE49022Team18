@@ -55,15 +55,7 @@ enum {
 uint32_t scroll_pos = 0;
 char * tmp_buf;
 
-void debug_screen_init() {
-  printf("Debug init!\n");
-  //Make screen
-  debug_screen = lv_obj_create(NULL);
-
-  // Alloc stats
-  printf("Alloc stats!\n");
-  stats = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
-
+void print_xHeapStats() {
   // Print heap stats
   struct xHeapStats heapStats;
   vPortGetHeapStats(&heapStats);
@@ -75,6 +67,16 @@ void debug_screen_init() {
   printf("xMinimumEverFreeBytesRemaining: %zu\n", heapStats.xMinimumEverFreeBytesRemaining);
   printf("xNumberOfSuccessfulAllocations: %zu\n", heapStats.xNumberOfSuccessfulAllocations);
   printf("xNumberOfSuccessfulFrees: %zu\n", heapStats.xNumberOfSuccessfulFrees);
+}
+
+void debug_screen_init() {
+  printf("Debug init!\n");
+  //Make screen
+  debug_screen = lv_obj_create(NULL);
+
+  // Alloc stats
+  printf("Alloc stats!\n");
+  stats = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
 
   // Add stats to screen
   printf("Setting up stats!\n");
@@ -103,6 +105,7 @@ void debug_screen_init() {
   printf("Alloc inputs!\n");
   inputs = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
 
+  print_xHeapStats();
   // Add inputs to screen
   printf("Setting up inputs!\n");
   for (int i = 0; i < INPUTS_SIZE; i++) {
