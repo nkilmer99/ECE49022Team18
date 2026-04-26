@@ -103,7 +103,7 @@ void debug_screen_init() {
 
   // Alloc inputs
   printf("Alloc inputs!\n");
-  inputs = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
+  inputs = pvPortMalloc(sizeof(struct line) * INPUTS_SIZE);
 
   print_xHeapStats();
   // Add inputs to screen

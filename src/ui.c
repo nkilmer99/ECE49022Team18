@@ -34,7 +34,7 @@ void ui_init() {
   lv_display_set_flush_cb(display, flush_cb);
 
   // Init debug and prod
-  prod_screen_init();
+  //prod_screen_init();
   debug_screen_init();
 
   // Set prod as screen
