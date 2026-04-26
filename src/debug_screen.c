@@ -109,21 +109,14 @@ void debug_screen_init() {
   // Add inputs to screen
   printf("Setting up inputs!\n");
   for (int i = 0; i < INPUTS_SIZE; i++) {
-    printf("i: %d\n", i);
-    printf("textarea\n");
     lv_obj_t * textarea = lv_textarea_create(debug_screen);
-    printf("set xy\n");
     lv_obj_set_x(textarea, 2);
     lv_obj_set_y(textarea, (STATS_SIZE * LABEL_DIFF) + (i * AREA_DIFF));
-    printf("set placeholder\n");
     lv_textarea_set_placeholder_text(textarea, "Placeholder");
-    printf("set style, size\n");
     lv_obj_add_style(textarea, &small_style, 0);
     lv_obj_set_size(textarea, 124, 18);
 
-    printf("Alloc input buf\n");
     inputs[i].buf = pvPortMalloc(LINE_BUF_SIZE);
-    printf("Set cursor, textarea\n");
     inputs[i].cursor = 0;
     inputs[i].lv_obj = textarea;
   }
