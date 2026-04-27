@@ -231,7 +231,7 @@ void debug_update_screen(char key) {
                 printf("Scrolled! %d, %s\n", inputs[item].cursor, inputs[item].buf);
               }
     case ' ': return;
-    case '*': if (dot) {
+    case '*': if (item >= 0 && dot) {
                 // Cancel
                 printf("Cancel!\n");
                 lv_textarea_set_text(inputs[item].lv_obj, "");
