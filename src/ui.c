@@ -8,7 +8,7 @@
 
 #define BUF_SIZE (WIDTH * HEIGHT * BYTES_PER_PIXEL)
 
-bool debug = true; // TODO: set to false
+#define DEBUG 0
 
 #define REFRESH_RATE 20 // Every x ms
 #define HOLD_TIME 3000 // ms
@@ -34,12 +34,13 @@ void ui_init() {
   lv_display_set_flush_cb(display, flush_cb);
 
   // Init debug and prod
-  //prod_screen_init();
+#if DEBUG
   debug_screen_init();
-
-  // Set prod as screen
-  if (debug) debug_set_active();
-  else prod_set_active();
+  debug_set_active();
+#else
+  prod_screen_init();
+  prod_set_active();
+#endif
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
@@ -55,20 +56,12 @@ void ui_worker(async_context_t *context, async_at_time_worker_t *worker) {
   // Get key
   char key = get_read_key();
 
-  // Check for debug change
-  if (get_key() == '#') hold_count++;
-  else hold_count = 0;
-
-  if (hold_count > HOLD_THRESH) {
-    hold_count = 0;
-    debug = !debug;
-    if (debug) debug_set_active();
-    else prod_set_active();
-  }
-
   // Update screen
-  if (debug) debug_update_screen(key);
-  else prod_update_screen(key);
+#if DEBUG
+  debug_update_screen(key);
+#else
+  prod_update_screen(key);
+#endif
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();
