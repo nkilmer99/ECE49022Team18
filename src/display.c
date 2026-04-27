@@ -83,7 +83,6 @@ void write_segment(uint8_t * buffer, int x, int y, int w, int h) {
 
 // Configure display
 void display_init() {
-  printf("Spi init\n");
   spi_init(spi0, 60 * 1000 * 1000);
 
   gpio_set_function(DISPLAY_SCLK, GPIO_FUNC_SPI);
@@ -230,8 +229,6 @@ void display_init() {
   // 00
   // (Pixel data ...)
 
-  printf("Configuring display!\n");
-
   // Sleep out & booster on
   write_byte(0, 0x11);
 
@@ -315,11 +312,8 @@ void display_init() {
   // Row address set {YS1, YS0, YE1, YE0}
   uint8_t w_data18[5] = {0x2B, 0x00, 0x01, 0x00, 0xA0};
   send_command(w_data18, 5);
-  printf("Display configured!\n");
 
   // Test write
-  printf("Writing to display!\n");
-
   // Display buffer
   // 2 bytes per pixel, 128 x 160 = 20480 pixels, 40960 bytes
   uint8_t * display_buffer = pvPortMalloc(sizeof(uint8_t) * 40960);

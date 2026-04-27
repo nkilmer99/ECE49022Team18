@@ -28,7 +28,6 @@ bool read = false;
 
 void keys_init() {
   // Keypad init
-  printf("Init keypad\n");
   gpio_init(KEYS_COL1);
   gpio_set_dir(KEYS_COL1, GPIO_OUT);
   gpio_put(KEYS_COL1, 0);

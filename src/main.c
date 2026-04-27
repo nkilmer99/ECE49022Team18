@@ -73,7 +73,6 @@ async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
 async_at_time_worker_t pid_timeout    = { .do_work = pid_worker };
 
 void main_task(__unused void *params) {
-  printf("Start main task\n");
   async_context_t *context = create_async_context();
 
   DS18B20_init(); // Temp
@@ -95,10 +94,8 @@ void main_task(__unused void *params) {
   async_context_add_at_time_worker_in_ms(context, &pid_timeout, 0);
 
   // start the led blinking
-  printf("Starting led\n");
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
 
-  printf("Starting main loop\n");
   int count = 0;
   while(true) {
     static int last_core_id = -1;
@@ -127,10 +124,6 @@ void vLaunch(void) {
 int main(void)
 {
   stdio_init_all();
-  printf("Start1\n");
-  sleep_ms(2000);
-  printf("Start2\n");
-  sleep_ms(2000);
 
   vLaunch();
   return 0;

@@ -10,6 +10,10 @@ void init_n_button(uint32_t screen, uint32_t n_buttons);
 void init_n_label(uint32_t screen, uint32_t n_labels);
 void init_n_input(uint32_t screen, uint32_t n_inputs);
 
+int32_t update_n_button(uint32_t screen, char ** bufs, char key);
+void update_n_label(uint32_t screen, char ** bufs, char key);
+int32_t update_n_input(uint32_t screen, char ** bufs, char key);
+
 void prod_update_screen(char key);
 void update_prod_screen_init(char key);
 void update_prod_screen_preset(char key);

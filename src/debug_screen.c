@@ -58,7 +58,7 @@ enum {
   INPUTS_SIZE
 };
 
-uint32_t scroll_pos = 0;
+uint32_t debug_scroll_pos = 0;
 char * tmp_buf;
 bool dot = false;
 
@@ -77,16 +77,13 @@ void print_xHeapStats() {
 }
 
 void debug_screen_init() {
-  printf("Debug init!\n");
   //Make screen
   debug_screen = lv_obj_create(NULL);
 
   // Alloc stats
-  printf("Alloc stats!\n");
   stats = pvPortMalloc(sizeof(struct line) * STATS_SIZE);
 
   // Add stats to screen
-  printf("Setting up stats!\n");
   for (int i = 0; i < STATS_SIZE; i++) {
     lv_obj_t * label = lv_label_create(debug_screen);
     lv_obj_set_x(label, 2);
@@ -109,12 +106,9 @@ void debug_screen_init() {
   lv_style_set_border_width(&small_style, 1);
 
   // Alloc inputs
-  printf("Alloc inputs!\n");
   inputs = pvPortMalloc(sizeof(struct line) * INPUTS_SIZE);
 
-  print_xHeapStats();
   // Add inputs to screen
-  printf("Setting up inputs!\n");
   for (int i = 0; i < INPUTS_SIZE; i++) {
     lv_obj_t * textarea = lv_textarea_create(debug_screen);
     lv_obj_set_x(textarea, 2);
@@ -129,7 +123,6 @@ void debug_screen_init() {
   }
 
   // Alloc tmp_buf
-  printf("Alloc tmp_buf!\n");
   tmp_buf = pvPortMalloc(LINE_BUF_SIZE);
 }
 
@@ -139,22 +132,21 @@ void debug_set_active() {
 
 void scroll_down() {
   uint32_t states = STATS_SIZE + INPUTS_SIZE - MAX_LINES + 1;
-  uint32_t old_pos = scroll_pos;
-  scroll_pos = (scroll_pos + 1) % states;
-  lv_obj_scroll_to_y(debug_screen, scroll_pos * LABEL_DIFF, NULL);
+  uint32_t old_pos = debug_scroll_pos;
+  debug_scroll_pos = (debug_scroll_pos + 1) % states;
+  lv_obj_scroll_to_y(debug_screen, debug_scroll_pos * LABEL_DIFF, NULL);
 
   // Change focus
   uint32_t old_item = old_pos + MAX_LINES - 1;
   if (old_item < STATS_SIZE) lv_obj_remove_state(stats[old_item].lv_obj, LV_STATE_FOCUSED);
   else lv_obj_remove_state(inputs[old_item - STATS_SIZE].lv_obj, LV_STATE_FOCUSED);
 
-  uint32_t item = scroll_pos + MAX_LINES - 1;
+  uint32_t item = debug_scroll_pos + MAX_LINES - 1;
   if (item < STATS_SIZE) lv_obj_add_state(stats[item].lv_obj, LV_STATE_FOCUSED);
   else lv_obj_add_state(inputs[item - STATS_SIZE].lv_obj, LV_STATE_FOCUSED);
 
   dot = false;
   if (old_item >= STATS_SIZE) {
-    printf("Clear cursor and buf!\n");
     inputs[old_item - STATS_SIZE].cursor = 0;
     inputs[old_item - STATS_SIZE].buf[0] = 0;
   }
@@ -184,7 +176,7 @@ void debug_update_screen(char key) {
     }
   }
 
-  int32_t item = scroll_pos + MAX_LINES - 1;
+  int32_t item = debug_scroll_pos + MAX_LINES - 1;
   if (item >= STATS_SIZE) item = item - STATS_SIZE;
   else item = -1;
 
@@ -213,7 +205,6 @@ void debug_update_screen(char key) {
     case '#': if (item >= 0 && inputs[item].cursor > 0) {
                 // Save
                 inputs[item].buf[inputs[item].cursor] = 0; // Null terminator
-                printf("Save! %d, %s\n", inputs[item].cursor, inputs[item].buf);
                 switch (item) {
                   case INPUTS_MOTOR_MODE:   motor_control(atoi(inputs[item].buf)); break;
                   case INPUTS_TEMP_TARGET:  set_target_temp(atof(inputs[item].buf)); break;
@@ -225,15 +216,13 @@ void debug_update_screen(char key) {
                 lv_textarea_set_text(inputs[item].lv_obj, "");
               }
               scroll_down();
-              item = scroll_pos + MAX_LINES - 1;
+              item = debug_scroll_pos + MAX_LINES - 1;
               if (item >= STATS_SIZE) {
                 item = item - STATS_SIZE;
-                printf("Scrolled! %d, %s\n", inputs[item].cursor, inputs[item].buf);
               }
     case ' ': return;
     case '*': if (item >= 0 && dot) {
                 // Cancel
-                printf("Cancel!\n");
                 lv_textarea_set_text(inputs[item].lv_obj, "");
                 scroll_down();
                 return;
@@ -244,7 +233,6 @@ void debug_update_screen(char key) {
   }
   if (item < 0) return;
 
-  printf("Add char! %c, %d, %s\n", key, inputs[item].cursor, inputs[item].buf);
   lv_textarea_add_char(inputs[item].lv_obj, key);
   inputs[item].buf[inputs[item].cursor++] = key;
 }
