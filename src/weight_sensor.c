@@ -9,7 +9,7 @@
 #define TARE_SAMPLES 20 // Times read for Taring
 #define KG_SAMPLES 10 // Times read for kg reading
 
-#define WEIGHT_CALIBRATION_VALUE 91760.0f // Calibration Value
+#define WEIGHT_CALIBRATION_VALUE 21863.0f // Calibration Value
 /*
 PROCEDURE TO FIND CALIBRATION VALUE
 
@@ -26,7 +26,7 @@ X = raw - offset
 statement
 */
 
-int32_t OFFSET = 0; // Initialize global OFFSET variable
+int32_t OFFSET = -194048; // Initialize global OFFSET variable
 
 float last_kg_reading = 0.0;
 
