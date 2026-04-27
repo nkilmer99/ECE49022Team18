@@ -146,9 +146,6 @@ void temp_worker(async_context_t *context, async_at_time_worker_t *worker)
     async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for x ms in future
 
     last_temperature = DS18B20_read_temperature();
-
-    // Output csv to USB serial
-    printf("%d,%f\n", xTaskGetTickCount(), last_temperature);
 }
 
 float get_temp() {

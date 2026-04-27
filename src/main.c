@@ -98,13 +98,9 @@ void main_task(__unused void *params) {
 
   int count = 0;
   while(true) {
-    static int last_core_id = -1;
-    if (portGET_CORE_ID() != last_core_id) {
-      last_core_id = portGET_CORE_ID();
-      //printf("main task is on core %d\n", last_core_id);
-    }
-    //printf("Hello from main task count=%u\n", count++);
-    vTaskDelay(3000);
+    // Output csv to USB serial
+    printf("%d,%f,%f\n", xTaskGetTickCount(), get_temp(), get_weight());
+    vTaskDelay(250);
   }
   async_context_deinit(context);
 }
