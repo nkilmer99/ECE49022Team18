@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "debug_screen.h"
 #include "display.h"
@@ -54,12 +55,12 @@ enum {
   INPUTS_TEMP_P,
   INPUTS_TEMP_I,
   INPUTS_TEMP_D,
-  INPUTS_TIMER,
   INPUTS_SIZE
 };
 
 uint32_t scroll_pos = 0;
 char * tmp_buf;
+bool dot = false;
 
 void print_xHeapStats() {
   // Print heap stats
@@ -138,10 +139,25 @@ void debug_set_active() {
 
 void scroll_down() {
   uint32_t states = STATS_SIZE + INPUTS_SIZE - MAX_LINES + 1;
+  uint32_t old_pos = scroll_pos;
   scroll_pos = (scroll_pos + 1) % states;
   lv_obj_scroll_to_y(debug_screen, scroll_pos * LABEL_DIFF, NULL);
 
-  printf("Scroll: %d!\n", scroll_pos);
+  // Change focus
+  uint32_t old_item = old_pos + MAX_LINES - 1;
+  if (old_item < STATS_SIZE) lv_obj_remove_state(stats[old_item].lv_obj, LV_STATE_FOCUSED);
+  else lv_obj_remove_state(inputs[old_item - STATS_SIZE].lv_obj, LV_STATE_FOCUSED);
+
+  uint32_t item = scroll_pos + MAX_LINES - 1;
+  if (item < STATS_SIZE) lv_obj_add_state(stats[item].lv_obj, LV_STATE_FOCUSED);
+  else lv_obj_add_state(inputs[item - STATS_SIZE].lv_obj, LV_STATE_FOCUSED);
+
+  dot = false;
+  if (old_item >= STATS_SIZE) {
+    printf("Clear cursor and buf!\n");
+    inputs[old_item - STATS_SIZE].cursor = 0;
+    inputs[old_item - STATS_SIZE].buf[0] = 0;
+  }
 }
 
 void debug_update_screen(char key) {
@@ -168,7 +184,13 @@ void debug_update_screen(char key) {
     }
   }
 
+  int32_t item = scroll_pos + MAX_LINES - 1;
+  if (item >= STATS_SIZE) item = item - STATS_SIZE;
+  else item = -1;
+
   for (int i = 0; i < INPUTS_SIZE; i++) {
+    if (i == item) continue;
+
     int len = 0;
 
     switch (i) {
@@ -177,7 +199,6 @@ void debug_update_screen(char key) {
       case INPUTS_TEMP_P:       len = sprintf(tmp_buf, "KP: %.6f",    get_kp());          break;
       case INPUTS_TEMP_I:       len = sprintf(tmp_buf, "Ki: %.6f",    get_ki());          break;
       case INPUTS_TEMP_D:       len = sprintf(tmp_buf, "Kd: %.6f",    get_kd());          break;
-      case INPUTS_TIMER: continue;
       default: continue;
     }
 
@@ -188,7 +209,42 @@ void debug_update_screen(char key) {
     }
   }
 
-  if (key == '#') {
-    scroll_down();
+  switch (key) {
+    case '#': if (item >= 0 && inputs[item].cursor > 0) {
+                // Save
+                inputs[item].buf[inputs[item].cursor] = 0; // Null terminator
+                printf("Save! %d, %s\n", inputs[item].cursor, inputs[item].buf);
+                switch (item) {
+                  case INPUTS_MOTOR_MODE:   motor_control(atoi(inputs[item].buf)); break;
+                  case INPUTS_TEMP_TARGET:  set_target_temp(atof(inputs[item].buf)); break;
+                  case INPUTS_TEMP_P:       set_kp(atof(inputs[item].buf)); break;
+                  case INPUTS_TEMP_I:       set_ki(atof(inputs[item].buf)); break;
+                  case INPUTS_TEMP_D:       set_kd(atof(inputs[item].buf)); break;
+                  default: break;
+                }
+                lv_textarea_set_text(inputs[item].lv_obj, "");
+              }
+              scroll_down();
+              item = scroll_pos + MAX_LINES - 1;
+              if (item >= STATS_SIZE) {
+                item = item - STATS_SIZE;
+                printf("Scrolled! %d, %s\n", inputs[item].cursor, inputs[item].buf);
+              }
+    case ' ': return;
+    case '*': if (dot) {
+                // Cancel
+                printf("Cancel!\n");
+                lv_textarea_set_text(inputs[item].lv_obj, "");
+                scroll_down();
+                return;
+              }
+              dot = true;
+              key = '.';
+    default: break;
   }
+  if (item < 0) return;
+
+  printf("Add char! %c, %d, %s\n", key, inputs[item].cursor, inputs[item].buf);
+  lv_textarea_add_char(inputs[item].lv_obj, key);
+  inputs[item].buf[inputs[item].cursor++] = key;
 }
