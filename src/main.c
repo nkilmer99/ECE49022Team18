@@ -44,37 +44,63 @@ void blink_task(__unused void *params) {
   bool on = false;
   init_led();
   while (true) {
-    static int last_core_id = -1;
-    if (portGET_CORE_ID() != last_core_id) {
-      last_core_id = portGET_CORE_ID();
-    }
     set_led(on);
     on = !on;
     vTaskDelay(LED_DELAY_MS);
   }
 }
 
-static async_context_freertos_t async_context_instance;
+void ui_task() {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 20;
 
-// Create an async context
-static async_context_t *create_async_context(void) {
-  async_context_freertos_config_t config = async_context_freertos_default_config();
-  config.task_priority = WORKER_TASK_PRIORITY;
-  config.task_stack_size = WORKER_TASK_STACK_SIZE;
-  if (!async_context_freertos_init(&async_context_instance, &config))
-    return NULL;
-  return &async_context_instance.core;
+  while(1) {
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    ui_worker();
+  }
 }
 
-async_at_time_worker_t ui_timeout     = { .do_work = ui_worker };
-async_at_time_worker_t key_timeout    = { .do_work = key_worker };
-async_at_time_worker_t temp_timeout   = { .do_work = temp_worker };
-async_at_time_worker_t weight_timeout = { .do_work = weight_worker };
-async_at_time_worker_t pid_timeout    = { .do_work = pid_worker };
+void key_task() {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 5;
+
+  while(1) {
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    key_worker();
+  }
+}
+
+void temp_task() {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 1000;
+
+  while(1) {
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    temp_worker();
+  }
+}
+
+void weight_task() {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 500;
+
+  while(1) {
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    weight_worker();
+  }
+}
+
+void pid_task() {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 1000;
+
+  while(1) {
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    pid_worker();
+  }
+}
 
 void main_task(__unused void *params) {
-  async_context_t *context = create_async_context();
-
   DS18B20_init(); // Temp
 
   motor_control(OFF_MODE);
@@ -86,23 +112,18 @@ void main_task(__unused void *params) {
 
   ui_init();
 
-  // start the worker running
-  async_context_add_at_time_worker_in_ms(context, &ui_timeout, 0);
-  async_context_add_at_time_worker_in_ms(context, &key_timeout, 0);
-  async_context_add_at_time_worker_in_ms(context, &temp_timeout, 0);
-  async_context_add_at_time_worker_in_ms(context, &weight_timeout, 0);
-  async_context_add_at_time_worker_in_ms(context, &pid_timeout, 0);
-
-  // start the led blinking
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(ui_task, "UIThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(key_task, "KeyThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(temp_task, "TempThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(weight_task, "WeightThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(pid_task, "PIDThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
 
-  int count = 0;
   while(true) {
     // Output csv to USB serial
     printf("%d,%f,%f\n", xTaskGetTickCount(), get_temp(), get_weight());
     vTaskDelay(250);
   }
-  async_context_deinit(context);
 }
 
 void vLaunch(void) {

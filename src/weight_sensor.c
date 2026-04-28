@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include "weight_sensor.h"
+#include "pico/async_context_freertos.h"
+#include "FreeRTOS.h"
 
 #include "pico/stdlib.h"
 
@@ -111,9 +113,7 @@ float HX711_read_kg()
     return kg_reading;
 }
 
-void weight_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  async_context_add_at_time_worker_in_ms(context, worker, 500); // Reschedule self for x ms in the future
-
+void weight_worker() {
   // Update kg reading
   last_kg_reading = HX711_read_kg();
 }

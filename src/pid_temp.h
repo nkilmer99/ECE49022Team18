@@ -2,15 +2,11 @@
 #define PID_TEMP_H
 
 #include "pico/stdlib.h"
-#include "stdint.h"
-#include "pico/async_context_freertos.h"
-#include "FreeRTOS.h"
-#include "task.h"
 
 void pid_init();
 void reset_pid();
 void update_pid();
-void pid_worker(async_context_t *context, async_at_time_worker_t *worker);
+void pid_worker();
 
 void set_kp(float val);
 float get_kp(void);

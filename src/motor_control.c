@@ -1,6 +1,8 @@
 #include "motor_control.h"
 #include "hardware/pwm.h"
 
+#include "pico/async_context_freertos.h"
+#include "FreeRTOS.h"
 #define PWM_PIN 20
 
 int cur_mode = OFF_MODE;

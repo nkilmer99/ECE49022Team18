@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "keys.h"
 
 #include "pico/stdlib.h"
+#include "pico/async_context_freertos.h"
+#include "FreeRTOS.h"
 
 #define KEYS_ROW1 3
 #define KEYS_ROW2 1
@@ -90,10 +93,7 @@ char get_read_key() {
   return NULL_CHAR;
 }
 
-void key_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  // Reschedule self
-  async_context_add_at_time_worker_in_ms(context, worker, KEY_DELAY);
-
+void key_worker() {
   // Poll keypad
   uint8_t key = poll_keypad();
 

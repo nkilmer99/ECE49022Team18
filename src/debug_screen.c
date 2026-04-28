@@ -12,6 +12,7 @@
 
 #include "FreeRTOS.h"
 #include "lvgl.h"
+#include "pico/async_context_freertos.h"
 
 #define LABEL_HEIGHT 10
 #define LABEL_PADDING 8

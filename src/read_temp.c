@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "read_temp.h"
+#include "pico/async_context_freertos.h"
+#include "FreeRTOS.h"
 
 #define TEMPSENSOR_PIN 21 // Set Temp Sensor Pin (Set in header file as well)
 #define TEMP_ERROR -999.0f // Default TEMP_ERROR Number for TEMP_ERROR cases
@@ -143,10 +145,8 @@ float DS18B20_read_temperature()
 
 float last_temperature = 0.0;
 
-void temp_worker(async_context_t *context, async_at_time_worker_t *worker)
+void temp_worker()
 {
-    async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for x ms in future
-
     last_temperature = DS18B20_read_temperature();
 }
 

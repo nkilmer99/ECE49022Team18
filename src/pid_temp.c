@@ -1,6 +1,9 @@
 #include "pid_temp.h"
 
 #include "read_temp.h"
+#include "stdint.h"
+#include "pico/async_context_freertos.h"
+#include "FreeRTOS.h"
 
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
@@ -54,9 +57,7 @@ void update_pid() {
   else gpio_put(PID_RELAY_PIN, 0);
 }
 
-void pid_worker(async_context_t *context, async_at_time_worker_t *worker) {
-  async_context_add_at_time_worker_in_ms(context, worker, 1000); // Reschedule self for x ms in future
-
+void pid_worker() {
   update_pid();
 }
 

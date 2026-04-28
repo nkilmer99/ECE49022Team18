@@ -9,6 +9,7 @@
 #include "read_temp.h"
 #include "pid_temp.h"
 
+#include "pico/async_context_freertos.h"
 #include "FreeRTOS.h"
 #include "lvgl.h"
 
