@@ -23,7 +23,7 @@
 #define AREA_PADDING 0
 #define AREA_DIFF (AREA_HEIGHT + AREA_PADDING)
 
-#define LINE_BUF_SIZE 100 // 100
+#define LINE_BUF_SIZE 30 // 100
 
 lv_obj_t * debug_screen = NULL;
 

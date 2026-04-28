@@ -18,7 +18,7 @@
 #define TEXTAREA_DIFF 20
 #define LABEL_DIFF 18
 
-#define LINE_BUF_SIZE 100
+#define LINE_BUF_SIZE 30
 
 enum {
   PROD_SCREEN_INIT = 0,
@@ -93,7 +93,6 @@ void prod_screen_init() {
   }
 
   // Init individual screens
-  printf("Init screens!\n");
   init_n_button(PROD_SCREEN_INIT, 2);
   init_n_button(PROD_SCREEN_PRESET, 10);
   init_n_input(PROD_SCREEN_CUSTOM, 2);
@@ -348,10 +347,8 @@ void update_prod_screen_error(char key) {
   sprintf(bufs[1], "Restart");
   update_n_label(PROD_SCREEN_ERROR, bufs, key);
 
-  while (1) {
-    printf("Error screen\n");
-    all_off();
-  }
+  printf("Error screen\n");
+  all_off();
 }
 
 void update_prod_screen_done(char key) {

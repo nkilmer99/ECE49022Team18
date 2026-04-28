@@ -17,7 +17,6 @@
 uint32_t hold_count = 0;
 
 void ui_init() {
-  taskDISABLE_INTERRUPTS();
   // Keypad init
   keys_init();
 
@@ -36,7 +35,6 @@ void ui_init() {
   lv_display_set_buffers(display, buf, buf2, BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(display, flush_cb);
 
-  printf("Init debug\n");
   // Init debug and prod
 #if DEBUG
   debug_screen_init();
@@ -45,7 +43,6 @@ void ui_init() {
   prod_screen_init();
   prod_set_active();
 #endif
-  taskENABLE_INTERRUPTS();
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
@@ -55,7 +52,6 @@ void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
 }
 
 void ui_worker() {
-  taskDISABLE_INTERRUPTS();
   // Get key
   char key = get_read_key();
 
@@ -68,5 +64,4 @@ void ui_worker() {
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();
-  taskENABLE_INTERRUPTS();
 }

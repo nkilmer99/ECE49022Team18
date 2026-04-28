@@ -26,6 +26,7 @@
 #define MAIN_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
 #define BLINK_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
 #define WORKER_TASK_STACK_SIZE 2048U
+#define UI_TASK_STACK_SIZE 65536U
 
 #include "pico/async_context_freertos.h"
 
@@ -113,11 +114,11 @@ void main_task(__unused void *params) {
   ui_init();
 
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
-  xTaskCreate(ui_task, "UIThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
-  xTaskCreate(key_task, "KeyThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
-  xTaskCreate(temp_task, "TempThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
-  xTaskCreate(weight_task, "WeightThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
-  xTaskCreate(pid_task, "PIDThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
+  xTaskCreate(ui_task, "UIThread", UI_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
+  xTaskCreate(key_task, "KeyThread", WORKER_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
+  xTaskCreate(temp_task, "TempThread", WORKER_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
+  xTaskCreate(weight_task, "WeightThread", WORKER_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
+  xTaskCreate(pid_task, "PIDThread", WORKER_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
 
   while(true) {
     // Output csv to USB serial

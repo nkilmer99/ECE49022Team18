@@ -105,7 +105,7 @@ void key_worker() {
   memcpy(key_buffer, &key_buffer[1], KEYS_BUF_SIZE - 1); // Shift array left 1
   key_buffer[KEYS_BUF_SIZE - 1] = key;
 
-  printf("Key: %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2]);
+  //printf("Key: %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2]);
 }
 
 char get_raw_key() {
