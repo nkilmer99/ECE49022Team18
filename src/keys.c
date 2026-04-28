@@ -105,7 +105,7 @@ void key_worker(async_context_t *context, async_at_time_worker_t *worker) {
   memcpy(key_buffer, &key_buffer[1], KEYS_BUF_SIZE - 1); // Shift array left 1
   key_buffer[KEYS_BUF_SIZE - 1] = key;
 
-  printf("Key: %d %d %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2], key_buffer[3], key_buffer[4]);
+  printf("Key: %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2]);
 }
 
 char get_raw_key() {
