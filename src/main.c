@@ -50,7 +50,7 @@ void blink_task(__unused void *params) {
     }
     set_led(on);
     on = !on;
-    sleep_ms(LED_DELAY_MS);
+    vTaskDelay(LED_DELAY_MS);
   }
 }
 

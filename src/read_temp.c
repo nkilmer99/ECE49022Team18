@@ -118,7 +118,7 @@ float DS18B20_read_temperature()
     onewire_write_byte(0xCC); // Skip ROM on datasheet command
     onewire_write_byte(0x44); // Convert T on datasheet command
 
-    sleep_ms(750); // Required for 12-bit resolution (default) on sensor
+    vTaskDelay(750); // Required for 12-bit resolution (default) on sensor
 
     presence_signal = DS18B20_reset(); // Send Reset
 

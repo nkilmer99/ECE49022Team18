@@ -8,7 +8,7 @@
 
 #define BUF_SIZE (WIDTH * HEIGHT * BYTES_PER_PIXEL)
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define REFRESH_RATE 20 // Every x ms
 #define HOLD_TIME 3000 // ms

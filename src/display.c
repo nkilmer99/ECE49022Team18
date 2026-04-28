@@ -6,6 +6,7 @@
 #include "hardware/spi.h"
 
 #include "FreeRTOS.h"
+#include "pico/async_context_freertos.h"
 
 #define DISPLAY_RST_DELAY 100 // ms
 #define DISPLAY_SPI_DELAY 0
@@ -20,9 +21,9 @@
 // Reset display
 void reset_display() {
   gpio_put(DISPLAY_RST, 0);
-  sleep_ms(DISPLAY_RST_DELAY);
+  vTaskDelay(DISPLAY_RST_DELAY);
   gpio_put(DISPLAY_RST, 1);
-  sleep_ms(DISPLAY_RST_DELAY);
+  vTaskDelay(DISPLAY_RST_DELAY);
 }
 
 // Send byte to display
@@ -35,7 +36,7 @@ void write_byte(bool dc, uint8_t data) {
   gpio_put(DISPLAY_DC, 1);
   gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(DISPLAY_SPI_DELAY);
+  vTaskDelay(DISPLAY_SPI_DELAY);
 }
 
 // Send command to display
@@ -53,7 +54,7 @@ void send_command(uint8_t * data, size_t len) {
 
   gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(DISPLAY_SPI_DELAY);
+  vTaskDelay(DISPLAY_SPI_DELAY);
 }
 
 // Send data to display
@@ -66,7 +67,7 @@ void send_data(uint8_t * data, size_t len) {
   gpio_put(DISPLAY_DC, 1);
   gpio_put(DISPLAY_CS, 1);
 
-  sleep_ms(DISPLAY_SPI_DELAY);
+  vTaskDelay(DISPLAY_SPI_DELAY);
 }
 
 // Write rectangular buffer to region on display

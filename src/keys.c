@@ -105,7 +105,7 @@ void key_worker(async_context_t *context, async_at_time_worker_t *worker) {
   memcpy(key_buffer, &key_buffer[1], KEYS_BUF_SIZE - 1); // Shift array left 1
   key_buffer[KEYS_BUF_SIZE - 1] = key;
 
-  //printf("%d %d %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2], key_buffer[3], key_buffer[4]);
+  printf("Key: %d %d %d %d %d\n", key_buffer[0], key_buffer[1], key_buffer[2], key_buffer[3], key_buffer[4]);
 }
 
 char get_raw_key() {
@@ -115,7 +115,7 @@ char get_raw_key() {
 uint8_t poll_keypad() {
   // KEYS_Col 1
   gpio_put(KEYS_COL1, 1);
-  sleep_ms(KEY_SLEEP);
+  vTaskDelay(KEY_SLEEP);
   if (gpio_get(KEYS_ROW1)) {
     gpio_put(KEYS_COL1, 0);
     return 1;
@@ -133,7 +133,7 @@ uint8_t poll_keypad() {
 
   // KEYS_Col 2
   gpio_put(KEYS_COL2, 1);
-  sleep_ms(KEY_SLEEP);
+  vTaskDelay(KEY_SLEEP);
   if (gpio_get(KEYS_ROW1)) {
     gpio_put(KEYS_COL2, 0);
     return 5;
@@ -151,7 +151,7 @@ uint8_t poll_keypad() {
 
   // KEYS_Col 3
   gpio_put(KEYS_COL3, 1);
-  sleep_ms(KEY_SLEEP);
+  vTaskDelay(KEY_SLEEP);
   if (gpio_get(KEYS_ROW1)) {
     gpio_put(KEYS_COL3, 0);
     return 9;
