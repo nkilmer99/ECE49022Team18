@@ -24,6 +24,7 @@ void ui_init() {
   display_init();
 
   // LVGL setup
+  printf("lv_init!\n");
   lv_init();
   lv_tick_set_cb(xTaskGetTickCount);
 
@@ -35,6 +36,7 @@ void ui_init() {
   lv_display_set_buffers(display, buf, buf2, BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(display, flush_cb);
 
+  printf("screen_init!\n");
   // Init debug and prod
 #if DEBUG
   debug_screen_init();
@@ -52,9 +54,11 @@ void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
 }
 
 void ui_worker() {
+  printf("UI Worker!\n");
+
   // Get key
   char key = get_read_key();
-
+  printf("Done read key!\n");
   // Update screen
 #if DEBUG
   debug_update_screen(key);
@@ -62,6 +66,7 @@ void ui_worker() {
   prod_update_screen(key);
 #endif
 
+  printf("lv_timer_handler!\n");
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();
 }

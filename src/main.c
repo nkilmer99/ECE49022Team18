@@ -26,7 +26,7 @@
 #define MAIN_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
 #define BLINK_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
 #define WORKER_TASK_STACK_SIZE 2048U
-#define UI_TASK_STACK_SIZE 65536U
+#define UI_TASK_STACK_SIZE 16384
 
 #include "pico/async_context_freertos.h"
 
@@ -111,7 +111,10 @@ void main_task(__unused void *params) {
 
   pid_init();
 
+  printf("UI init!\n");
   ui_init();
+  printf("Done init!\n");
+
 
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
   xTaskCreate(ui_task, "UIThread", UI_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);
@@ -142,6 +145,7 @@ void vLaunch(void) {
 int main(void)
 {
   stdio_init_all();
+  sleep_ms(2000);
 
   vLaunch();
   return 0;
