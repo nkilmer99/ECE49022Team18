@@ -54,12 +54,17 @@ void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
 void ui_worker() {
   // Get key
   char key = get_read_key();
+
+  printf("Before update\n");
+  print_xHeapStats();
   // Update screen
 #if DEBUG
   debug_update_screen(key);
 #else
   prod_update_screen(key);
 #endif
+  printf("After update\n");
+  print_xHeapStats();
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();

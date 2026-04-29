@@ -4,5 +4,6 @@
 void debug_screen_init();
 void debug_set_active();
 void debug_update_screen(char key);
+void print_xHeapStats();
 
 #endif

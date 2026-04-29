@@ -318,11 +318,12 @@ void update_prod_screen_init(char key) {
   switch (update_n_button(PROD_SCREEN_INIT, bufs, key)) {
     case 0: switch_screen(PROD_SCREEN_PRESET); break;
     case 1: switch_screen(PROD_SCREEN_CUSTOM); break;
-    default: return;
+    default: break;
   }
 
   for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
   vPortFree(bufs);
+  return;
 }
 
 void update_prod_screen_preset(char key) {
@@ -332,18 +333,21 @@ void update_prod_screen_preset(char key) {
   sprintf(bufs[1], "Beef");
   sprintf(bufs[2], "Pork");
 
+  bool switch_bool = true;
   switch (update_n_button(PROD_SCREEN_PRESET, bufs, key)) {
     case 0: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
     case 1: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
     case 2: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
-    default: return;
+    default: switch_bool = false; break;
   }
-
-  reset_pid();
-  switch_screen(PROD_SCREEN_WARMUP);
 
   for (int i = 0; i < 3; i++) vPortFree(bufs[i]);
   vPortFree(bufs);
+
+  if (!switch_bool) return;
+
+  reset_pid();
+  switch_screen(PROD_SCREEN_WARMUP);
 }
 
 void update_prod_screen_custom(char key) {
