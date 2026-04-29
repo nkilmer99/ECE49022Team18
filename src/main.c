@@ -111,10 +111,7 @@ void main_task(__unused void *params) {
 
   pid_init();
 
-  printf("UI init!\n");
   ui_init();
-  printf("Done init!\n");
-
 
   xTaskCreate(blink_task, "BlinkThread", BLINK_TASK_STACK_SIZE, NULL, BLINK_TASK_PRIORITY, NULL);
   xTaskCreate(ui_task, "UIThread", UI_TASK_STACK_SIZE, NULL, WORKER_TASK_PRIORITY, NULL);

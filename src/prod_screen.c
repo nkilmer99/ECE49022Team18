@@ -179,13 +179,13 @@ void init_n_input(uint32_t screen, uint32_t n_inputs) {
 }
 
 int32_t update_n_button(uint32_t screen, char ** bufs, char key) {
-  printf("Update_n_button!\n");
   if (bufs != NULL) {
-    uint32_t n_bufs = prod_screens[screen].num_objects;
+    uint32_t n_bufs = prod_screens[screen].num_objects / 2;
     for (int i = 0; i < n_bufs; i++) {
-      if (strcmp(prod_screens[screen].bufs[(2 * i) + 1], bufs[i]) != 0) {
-        strcpy(prod_screens[screen].bufs[(2 * i) + 1], bufs[i]);
-        lv_label_set_text_static(prod_screens[screen].objects[(2 * i) + 1], prod_screens[screen].bufs[(2 * i) + 1]);
+      uint32_t ind = (2 * i) + 1;
+      if (strcmp(prod_screens[screen].bufs[ind], bufs[i]) != 0) {
+        strcpy(prod_screens[screen].bufs[ind], bufs[i]);
+        lv_label_set_text_static(prod_screens[screen].objects[ind], prod_screens[screen].bufs[ind]);
       }
     }
   }
@@ -210,12 +210,10 @@ int32_t update_n_button(uint32_t screen, char ** bufs, char key) {
     return pos;
   }
 
-  printf("Done update_n_button!\n");
   return -1;
 }
 
 void update_n_label(uint32_t screen, char ** bufs, char key) {
-  printf("Update_n_label!\n");
   if (bufs != NULL) {
     uint32_t n_bufs = prod_screens[screen].num_objects;
     for (int i = 0; i < n_bufs; i++) {
@@ -225,7 +223,6 @@ void update_n_label(uint32_t screen, char ** bufs, char key) {
       }
     }
   }
-  printf("Done update_n_label!\n");
 }
 
 int32_t update_n_input(uint32_t screen, char ** bufs, char key) {
@@ -269,7 +266,6 @@ void switch_screen(int screen) {
 }
 
 void prod_update_screen(char key) {
-  printf("prod update screen!\n");
   switch (current_screen) {
     case PROD_SCREEN_INIT:    update_prod_screen_init(key);     break;
     case PROD_SCREEN_PRESET:  update_prod_screen_preset(key);   break;
@@ -283,17 +279,15 @@ void prod_update_screen(char key) {
 }
 
 void update_prod_screen_init(char key) {
-  printf("prod update init screen!\n");
   char ** bufs = pvPortMalloc(sizeof(char *) * 2);
   for (int i = 0; i < 2; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   sprintf(bufs[0], "Preset");
   sprintf(bufs[1], "Custom");
-  //char ** bufs = NULL;
 
-  update_n_label(PROD_SCREEN_WARMUP, bufs, key);
+  update_n_button(PROD_SCREEN_INIT, bufs, key);
   switch (update_n_button(PROD_SCREEN_INIT, NULL, key)) {
     case 0: switch_screen(PROD_SCREEN_PRESET); break;
-    case 1: switch_screen(PROD_SCREEN_CUSTOM); //break;
+    case 1: switch_screen(PROD_SCREEN_CUSTOM); break;
     default: return;
   }
 }
