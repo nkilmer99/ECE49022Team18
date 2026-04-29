@@ -47,6 +47,7 @@ lv_style_t global_style;
 
 uint32_t current_screen = PROD_SCREEN_INIT;
 uint32_t end_tick = 0;
+uint32_t target_time = 0; // seconds
 
 void prod_screen_init() {
   // Init style
@@ -94,7 +95,7 @@ void prod_screen_init() {
 
   // Init individual screens
   init_n_button(PROD_SCREEN_INIT, 2);
-  init_n_button(PROD_SCREEN_PRESET, 10);
+  init_n_button(PROD_SCREEN_PRESET, 3);
   init_n_input(PROD_SCREEN_CUSTOM, 2);
   init_n_label(PROD_SCREEN_WARMUP, 4);
   init_n_label(PROD_SCREEN_COOKING, 4);
@@ -126,6 +127,8 @@ void init_n_button(uint32_t screen, uint32_t n_buttons) {
     prod_screens[screen].bufs[2 * i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
     prod_screens[screen].bufs[(2 * i) + 1] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   }
+
+  lv_obj_add_state(prod_screens[screen].objects[0], LV_STATE_PRESSED);
 }
 
 void init_n_label(uint32_t screen, uint32_t n_labels) {
@@ -146,6 +149,8 @@ void init_n_label(uint32_t screen, uint32_t n_labels) {
     prod_screens[screen].objects[i] = label;
     prod_screens[screen].bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   }
+
+  lv_obj_add_state(prod_screens[screen].objects[0], LV_STATE_FOCUSED);
 }
 
 void init_n_input(uint32_t screen, uint32_t n_inputs) {
@@ -258,6 +263,8 @@ void prod_set_active() {
 void all_off() {
   motor_control(OFF_MODE);
   set_target_temp(0.0f);
+  target_time = 0;
+  end_tick = 0;
 }
 
 void switch_screen(int screen) {
@@ -284,8 +291,7 @@ void update_prod_screen_init(char key) {
   sprintf(bufs[0], "Preset");
   sprintf(bufs[1], "Custom");
 
-  update_n_button(PROD_SCREEN_INIT, bufs, key);
-  switch (update_n_button(PROD_SCREEN_INIT, NULL, key)) {
+  switch (update_n_button(PROD_SCREEN_INIT, bufs, key)) {
     case 0: switch_screen(PROD_SCREEN_PRESET); break;
     case 1: switch_screen(PROD_SCREEN_CUSTOM); break;
     default: return;
@@ -293,11 +299,21 @@ void update_prod_screen_init(char key) {
 }
 
 void update_prod_screen_preset(char key) {
-  // TODO: handle option selection
+  char ** bufs = pvPortMalloc(sizeof(char *) * 3);
+  for (int i = 0; i < 3; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
+  sprintf(bufs[0], "Chicken");
+  sprintf(bufs[1], "Beef");
+  sprintf(bufs[2], "Pork");
 
-  if (update_n_button(PROD_SCREEN_PRESET, NULL, key) >= 0) {
-    switch_screen(PROD_SCREEN_WARMUP);
+  switch (update_n_button(PROD_SCREEN_PRESET, bufs, key) >= 0) {
+    case 0: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
+    case 1: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
+    case 2: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
+    default: return;
   }
+
+  reset_pid();
+  switch_screen(PROD_SCREEN_WARMUP);
 }
 
 void update_prod_screen_custom(char key) {
@@ -306,11 +322,15 @@ void update_prod_screen_custom(char key) {
 }
 
 void update_prod_screen_warmup(char key) {
+  uint32_t hrs = target_time / 3600;
+  uint32_t min = (target_time % 3600) / 60;
+  uint32_t sec = target_time % 60;
+
   char ** bufs = pvPortMalloc(sizeof(char *) * 4);
   for (int i = 0; i < 4; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   sprintf(bufs[0], "Warmup");
   sprintf(bufs[1], "Temp: %.2f", get_temp());
-  sprintf(bufs[2], "Time: ");
+  sprintf(bufs[2], "Time: %dh%dm%ds", hrs, min, sec);
   sprintf(bufs[3], "* to cancel");
   update_n_label(PROD_SCREEN_WARMUP, bufs, key);
 
@@ -318,17 +338,24 @@ void update_prod_screen_warmup(char key) {
     switch_screen(PROD_SCREEN_DONE);
     all_off();
   } else if (get_temp() >= get_target_temp()) {
+    // Set end time
+    end_tick = (xTaskGetTickCount() + (target_time * 1000));
     switch_screen(PROD_SCREEN_COOKING);
   }
 }
 
 void update_prod_screen_cooking(char key) {
   uint32_t tick_count = xTaskGetTickCount();
+  uint32_t time_left = (end_tick - tick_count) / 1000;
+  uint32_t hrs = time_left / 3600;
+  uint32_t min = (time_left % 3600) / 60;
+  uint32_t sec = time_left % 60;
+
   char ** bufs = pvPortMalloc(sizeof(char *) * 4);
   for (int i = 0; i < 4; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   sprintf(bufs[0], "Cooking");
   sprintf(bufs[1], "Temp: %.2f", get_temp());
-  sprintf(bufs[2], "Time: ");
+  sprintf(bufs[2], "Time: %dh%dm%ds", hrs, min, sec);
   sprintf(bufs[3], "* to cancel");
   update_n_label(PROD_SCREEN_COOKING, bufs, key);
 
