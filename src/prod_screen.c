@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "prod_screen.h"
 
@@ -39,8 +41,9 @@ struct screen_t {
   uint32_t num_objects;
 };
 
-uint32_t cursor = 0;
+uint32_t prod_cursor = 0;
 uint32_t prod_scroll_pos = 0;
+bool prod_dot = false;
 
 struct screen_t * prod_screens = NULL;
 lv_style_t global_style;
@@ -184,6 +187,7 @@ void init_n_input(uint32_t screen, uint32_t n_inputs) {
 }
 
 int32_t update_n_button(uint32_t screen, char ** bufs, char key) {
+  if (prod_scroll_pos >= prod_screens[screen].num_objects) prod_scroll_pos = 0;
   if (bufs != NULL) {
     uint32_t n_bufs = prod_screens[screen].num_objects / 2;
     for (int i = 0; i < n_bufs; i++) {
@@ -219,6 +223,7 @@ int32_t update_n_button(uint32_t screen, char ** bufs, char key) {
 }
 
 void update_n_label(uint32_t screen, char ** bufs, char key) {
+  if (prod_scroll_pos >= prod_screens[screen].num_objects) prod_scroll_pos = 0;
   if (bufs != NULL) {
     uint32_t n_bufs = prod_screens[screen].num_objects;
     for (int i = 0; i < n_bufs; i++) {
@@ -231,7 +236,7 @@ void update_n_label(uint32_t screen, char ** bufs, char key) {
 }
 
 int32_t update_n_input(uint32_t screen, char ** bufs, char key) {
-  if (bufs != NULL) {
+  if (bufs != NULL && prod_scroll_pos >= prod_screens[screen].num_objects) {
     uint32_t n_bufs = prod_screens[screen].num_objects;
     for (int i = 0; i < n_bufs; i++) {
       if (strcmp(prod_screens[screen].bufs[i], bufs[i]) != 0) {
@@ -241,16 +246,34 @@ int32_t update_n_input(uint32_t screen, char ** bufs, char key) {
     }
   }
 
+  if (prod_scroll_pos >= prod_screens[screen].num_objects) prod_scroll_pos = 0;
+
   switch (key) {
+    case ' ': return -1; break;
     case '#': lv_obj_remove_state(prod_screens[screen].objects[prod_scroll_pos], LV_STATE_FOCUSED);
+              prod_screens[screen].bufs[prod_scroll_pos][prod_cursor] = 0;
 
               prod_scroll_pos = (prod_scroll_pos + 1) % (prod_screens[screen].num_objects);
               lv_obj_scroll_to_view(prod_screens[screen].objects[prod_scroll_pos], NULL);
 
               lv_obj_add_state(prod_screens[screen].objects[prod_scroll_pos], LV_STATE_FOCUSED);
+
+              prod_cursor = 0;
+              prod_dot = false;
+
+              if (prod_scroll_pos == 0) return 1;
               break;
     case '*': key = '.';
+              if (prod_dot) {
+                //Clear screen
+                lv_textarea_set_text(prod_screens[screen].objects[prod_scroll_pos], "");
+                prod_cursor = 0;
+                prod_screens[screen].bufs[prod_scroll_pos][prod_cursor] = 0;
+                break;
+              }
+              prod_dot = true;
     default:  lv_textarea_add_char(prod_screens[screen].objects[prod_scroll_pos], key);
+              prod_screens[screen].bufs[prod_scroll_pos][prod_cursor++] = key;
   }
   return -1;
 }
@@ -270,6 +293,7 @@ void all_off() {
 void switch_screen(int screen) {
   lv_screen_load(prod_screens[screen].screen);
   current_screen = screen;
+  prod_scroll_pos = prod_screens[screen].num_objects;
 }
 
 void prod_update_screen(char key) {
@@ -296,6 +320,9 @@ void update_prod_screen_init(char key) {
     case 1: switch_screen(PROD_SCREEN_CUSTOM); break;
     default: return;
   }
+
+  for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_preset(char key) {
@@ -305,7 +332,7 @@ void update_prod_screen_preset(char key) {
   sprintf(bufs[1], "Beef");
   sprintf(bufs[2], "Pork");
 
-  switch (update_n_button(PROD_SCREEN_PRESET, bufs, key) >= 0) {
+  switch (update_n_button(PROD_SCREEN_PRESET, bufs, key)) {
     case 0: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
     case 1: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
     case 2: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
@@ -314,11 +341,27 @@ void update_prod_screen_preset(char key) {
 
   reset_pid();
   switch_screen(PROD_SCREEN_WARMUP);
+
+  for (int i = 0; i < 3; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_custom(char key) {
-  // TODO: handle option input
+  char ** bufs = pvPortMalloc(sizeof(char *) * 2);
+  for (int i = 0; i < 2; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
+  sprintf(bufs[0], "Temp:");
+  sprintf(bufs[1], "Time:");
 
+  if (update_n_input(PROD_SCREEN_CUSTOM, bufs, key) == 1) {
+    set_target_temp(atof(prod_screens[PROD_SCREEN_CUSTOM].bufs[0]));
+    target_time = (int)floor(atof(prod_screens[PROD_SCREEN_CUSTOM].bufs[1]));
+    reset_pid();
+    motor_control(CONTROLLED_MODE);
+    switch_screen(PROD_SCREEN_WARMUP);
+  }
+
+  for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_warmup(char key) {
@@ -342,6 +385,9 @@ void update_prod_screen_warmup(char key) {
     end_tick = (xTaskGetTickCount() + (target_time * 1000));
     switch_screen(PROD_SCREEN_COOKING);
   }
+
+  for (int i = 0; i < 4; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_cooking(char key) {
@@ -363,6 +409,9 @@ void update_prod_screen_cooking(char key) {
     switch_screen(PROD_SCREEN_DONE);
     all_off();
   }
+
+  for (int i = 0; i < 4; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_error(char key) {
@@ -374,6 +423,9 @@ void update_prod_screen_error(char key) {
 
   printf("Error screen\n");
   all_off();
+
+  for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
 
 void update_prod_screen_done(char key) {
@@ -384,4 +436,7 @@ void update_prod_screen_done(char key) {
   update_n_label(PROD_SCREEN_DONE, bufs, key);
 
   if (key != ' ') switch_screen(PROD_SCREEN_INIT);
+
+  for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
 }
