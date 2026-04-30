@@ -451,7 +451,6 @@ void update_prod_screen_done(char key) {
 }
 
 void update_prod_screen_boot(char key) {
-  printf("Boot screen!\n");
   char ** bufs = pvPortMalloc(sizeof(char *) * 2);
   for (int i = 0; i < 4; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   sprintf(bufs[0], "# to scroll");
@@ -461,7 +460,6 @@ void update_prod_screen_boot(char key) {
   update_n_label(PROD_SCREEN_BOOT, bufs, key);
 
   if (key == '*') {
-    printf("Boot switch\n");
     switch_screen(PROD_SCREEN_INIT);
   }
 
