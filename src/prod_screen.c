@@ -186,6 +186,8 @@ void init_n_input(uint32_t screen, uint32_t n_inputs) {
 
     prod_screens[screen].bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
   }
+
+  lv_obj_add_state(prod_screens[screen].objects[0], LV_STATE_FOCUSED);
 }
 
 int32_t update_n_button(uint32_t screen, char ** bufs, char key) {
