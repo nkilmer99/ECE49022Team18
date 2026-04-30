@@ -30,6 +30,7 @@ enum {
   PROD_SCREEN_COOKING,
   PROD_SCREEN_ERROR,
   PROD_SCREEN_DONE,
+  PROD_SCREEN_BOOT,
   PROD_SCREEN_SIZE
 };
 
@@ -48,7 +49,7 @@ bool prod_dot = false;
 struct screen_t * prod_screens = NULL;
 lv_style_t global_style;
 
-uint32_t current_screen = PROD_SCREEN_INIT;
+uint32_t current_screen = PROD_SCREEN_BOOT;
 uint32_t end_tick = 0;
 uint32_t target_time = 0; // seconds
 
@@ -104,6 +105,7 @@ void prod_screen_init() {
   init_n_label(PROD_SCREEN_COOKING, 4);
   init_n_label(PROD_SCREEN_DONE, 2);
   init_n_label(PROD_SCREEN_ERROR, 2);
+  init_n_label(PROD_SCREEN_BOOT, 4);
 }
 
 void init_n_button(uint32_t screen, uint32_t n_buttons) {
@@ -280,7 +282,7 @@ int32_t update_n_input(uint32_t screen, char ** bufs, char key) {
 
 void prod_set_active() {
   all_off();
-  switch_screen(PROD_SCREEN_INIT);
+  switch_screen(PROD_SCREEN_BOOT);
 }
 
 void all_off() {
@@ -305,6 +307,7 @@ void prod_update_screen(char key) {
     case PROD_SCREEN_COOKING: update_prod_screen_cooking(key);  break;
     case PROD_SCREEN_ERROR:   update_prod_screen_error(key);    break;
     case PROD_SCREEN_DONE:    update_prod_screen_done(key);     break;
+    case PROD_SCREEN_BOOT:    update_prod_screen_boot(key);     break;
     default: return;
   }
 }
@@ -444,6 +447,25 @@ void update_prod_screen_done(char key) {
   if (key != ' ') switch_screen(PROD_SCREEN_INIT);
 
   for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
+  vPortFree(bufs);
+}
+
+void update_prod_screen_boot(char key) {
+  printf("Boot screen!\n");
+  char ** bufs = pvPortMalloc(sizeof(char *) * 2);
+  for (int i = 0; i < 4; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
+  sprintf(bufs[0], "# to scroll");
+  sprintf(bufs[1], "* to enter");
+  sprintf(bufs[2], "Press * button");
+  sprintf(bufs[3], "to continue");
+  update_n_label(PROD_SCREEN_BOOT, bufs, key);
+
+  if (key == '*') {
+    printf("Boot switch\n");
+    switch_screen(PROD_SCREEN_INIT);
+  }
+
+  for (int i = 0; i < 4; i++) vPortFree(bufs[i]);
   vPortFree(bufs);
 }
 
