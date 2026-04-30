@@ -69,7 +69,7 @@ void ui_worker() {
   if (debug) debug_update_screen(key);
   else {
     prod_update_screen(key);
-    if (get_temp() < 0) prod_trigger_error();
+    if (get_temp() < -1) prod_trigger_error();
   }
 
   // Update lvgl (writes to display, plays animations, etc.)
