@@ -6,10 +6,11 @@
 #include "prod_screen.h"
 #include "debug_screen.h"
 #include "pico/async_context_freertos.h"
+#include "read_temp.h"
 
 #define BUF_SIZE (WIDTH * HEIGHT * BYTES_PER_PIXEL)
 
-#define DEBUG 0
+bool debug = false;
 
 #define REFRESH_RATE 20 // Every x ms
 #define HOLD_TIME 3000 // ms
@@ -36,13 +37,11 @@ void ui_init() {
   lv_display_set_flush_cb(display, flush_cb);
 
   // Init debug and prod
-#if DEBUG
   debug_screen_init();
-  debug_set_active();
-#else
   prod_screen_init();
-  prod_set_active();
-#endif
+
+  if (debug) debug_set_active();
+  else prod_set_active();
 }
 
 void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_buf) {
@@ -55,16 +54,23 @@ void ui_worker() {
   // Get key
   char key = get_read_key();
 
-  printf("Before update\n");
-  print_xHeapStats();
+  // Check for debug change
+  if (get_key() == '#') hold_count++;
+  else hold_count = 0;
+
+  if (hold_count > HOLD_THRESH) {
+    hold_count = 0;
+    debug = !debug;
+    if (debug) debug_set_active();
+    else prod_set_active();
+  }
+
   // Update screen
-#if DEBUG
-  debug_update_screen(key);
-#else
-  prod_update_screen(key);
-#endif
-  printf("After update\n");
-  print_xHeapStats();
+  if (debug) debug_update_screen(key);
+  else {
+    prod_update_screen(key);
+    if (get_temp() < 0) prod_trigger_error();
+  }
 
   // Update lvgl (writes to display, plays animations, etc.)
   lv_timer_handler();

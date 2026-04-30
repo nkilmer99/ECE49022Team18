@@ -12,9 +12,11 @@
 
 #define PID_UPDATE_MS   1000
 
-float kp = 0.0403f;
-float ki = 0.00009f;
-float kd = 4.5f;
+#define PID_I_THRESH 3
+
+float kp = 0.0806f;   // 0.0403
+float ki = 0.000045f;  // 0.00009
+float kd = 4.5f;      // 4.5
 
 float target_temp = 0.0f;
 
@@ -48,10 +50,15 @@ void update_pid() {
   last_tick_count = tick_count;
 
   float error = target_temp - temp;
-  integral += error * dt;
+  bool update_int = (error < PID_I_THRESH) && (error > -PID_I_THRESH);
+  if (update_int) integral += error * dt;
   derivative = (error - prev_error) / dt;
   prev_error = error;
-  pid_output = (kp * error) + (ki * integral) + (kd * derivative);
+  if (update_int) {
+    pid_output = (kp * error) + (ki * integral) + (kd * derivative);
+  } else {
+    pid_output = (kp * error) + (kd * derivative);
+  }
 
   if (pid_output > 0.0f) gpio_put(PID_RELAY_PIN, 1);
   else gpio_put(PID_RELAY_PIN, 0);

@@ -45,6 +45,10 @@ enum {
   STATS_TEMP_I,
   STATS_TEMP_D,
   STATS_TEMP_PID,
+  STATS_TIME,
+  STATS_BEEF,
+  STATS_CHICKEN,
+  STATS_PORK,
   STATS_SIZE
 };
 
@@ -56,6 +60,7 @@ enum {
   INPUTS_TEMP_P,
   INPUTS_TEMP_I,
   INPUTS_TEMP_D,
+  INPUTS_PID_RESET,
   INPUTS_SIZE
 };
 
@@ -167,6 +172,10 @@ void debug_update_screen(char key) {
       case STATS_TEMP_I:    len = sprintf(tmp_buf, "I: %.2f",    get_integral());   break;
       case STATS_TEMP_D:    len = sprintf(tmp_buf, "D: %.2f",    get_derivative()); break;
       case STATS_TEMP_PID:  len = sprintf(tmp_buf, "PID: %.1f",  get_pid_output()); break;
+      case STATS_TIME:      len = sprintf(tmp_buf, "TIME: %d",   xTaskGetTickCount()); break;
+      case STATS_BEEF:      len = sprintf(tmp_buf, "BEEF: %d",   get_time_from_weight(WEIGHT_BEEF)); break;
+      case STATS_CHICKEN:   len = sprintf(tmp_buf, "CHIC: %d",   get_time_from_weight(WEIGHT_CHICKEN)); break;
+      case STATS_PORK:      len = sprintf(tmp_buf, "PORK: %d",   get_time_from_weight(WEIGHT_PORK)); break;
       default: continue;
     }
 
@@ -192,6 +201,7 @@ void debug_update_screen(char key) {
       case INPUTS_TEMP_P:       len = sprintf(tmp_buf, "KP: %.6f",    get_kp());          break;
       case INPUTS_TEMP_I:       len = sprintf(tmp_buf, "Ki: %.6f",    get_ki());          break;
       case INPUTS_TEMP_D:       len = sprintf(tmp_buf, "Kd: %.6f",    get_kd());          break;
+      case INPUTS_PID_RESET:    len = sprintf(tmp_buf, "PID RESET");                      break;
       default: continue;
     }
 
@@ -212,6 +222,7 @@ void debug_update_screen(char key) {
                   case INPUTS_TEMP_P:       set_kp(atof(inputs[item].buf)); break;
                   case INPUTS_TEMP_I:       set_ki(atof(inputs[item].buf)); break;
                   case INPUTS_TEMP_D:       set_kd(atof(inputs[item].buf)); break;
+                  case INPUTS_PID_RESET:    reset_pid(); break;
                   default: break;
                 }
                 lv_textarea_set_text(inputs[item].lv_obj, "");

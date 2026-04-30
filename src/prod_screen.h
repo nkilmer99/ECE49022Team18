@@ -22,5 +22,8 @@ void update_prod_screen_warmup(char key);
 void update_prod_screen_cooking(char key);
 void update_prod_screen_error(char key);
 void update_prod_screen_done(char key);
+void update_prod_screen_boot(char key);
+
+void prod_trigger_error();
 
 #endif

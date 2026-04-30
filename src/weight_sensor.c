@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #include "weight_sensor.h"
 #include "pico/async_context_freertos.h"
@@ -120,4 +121,22 @@ void weight_worker() {
 
 float get_weight() {
   return last_kg_reading;
+}
+
+uint32_t get_time_from_weight(int food) {
+  float density;
+  switch (food) {
+    case WEIGHT_BEEF:     density = 1.06 * pow(10, -6); break;
+    case WEIGHT_CHICKEN:  density = 1.15 * pow(10, -6); break;
+    case WEIGHT_PORK:     density = 0.93 * pow(10, -6); break;
+    default: return 0;
+  }
+
+  float volume = get_weight() / density;
+  float thickness = volume / (127 * 102);
+  float weight_time = 0.04666 * (thickness * thickness);
+  weight_time += 2.22159 * thickness;
+  weight_time += 20.98623;
+
+  return (uint32_t) round(weight_time) * 60;
 }

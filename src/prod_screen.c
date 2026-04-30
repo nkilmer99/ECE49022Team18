@@ -98,7 +98,7 @@ void prod_screen_init() {
 
   // Init individual screens
   init_n_button(PROD_SCREEN_INIT, 2);
-  init_n_button(PROD_SCREEN_PRESET, 3);
+  init_n_button(PROD_SCREEN_PRESET, 4);
   init_n_input(PROD_SCREEN_CUSTOM, 2);
   init_n_label(PROD_SCREEN_WARMUP, 4);
   init_n_label(PROD_SCREEN_COOKING, 4);
@@ -327,21 +327,23 @@ void update_prod_screen_init(char key) {
 }
 
 void update_prod_screen_preset(char key) {
-  char ** bufs = pvPortMalloc(sizeof(char *) * 3);
-  for (int i = 0; i < 3; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
-  sprintf(bufs[0], "Chicken");
-  sprintf(bufs[1], "Beef");
-  sprintf(bufs[2], "Pork");
+  char ** bufs = pvPortMalloc(sizeof(char *) * 4);
+  for (int i = 0; i < 4; i++) bufs[i] = pvPortMalloc(sizeof(char) * LINE_BUF_SIZE);
+  sprintf(bufs[0], "Med Rare Beef");
+  sprintf(bufs[1], "Medium Beef");
+  sprintf(bufs[2], "Chicken");
+  sprintf(bufs[3], "Pork");
 
   bool switch_bool = true;
   switch (update_n_button(PROD_SCREEN_PRESET, bufs, key)) {
-    case 0: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
-    case 1: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
-    case 2: target_time = 100; set_target_temp(30); motor_control(CONTROLLED_MODE); break;
+    case 0: target_time = get_time_from_weight(WEIGHT_BEEF);    set_target_temp(54); motor_control(CONTROLLED_MODE); break;
+    case 1: target_time = get_time_from_weight(WEIGHT_BEEF);    set_target_temp(58); motor_control(CONTROLLED_MODE); break;
+    case 2: target_time = get_time_from_weight(WEIGHT_CHICKEN); set_target_temp(73.9); motor_control(CONTROLLED_MODE); break;
+    case 3: target_time = get_time_from_weight(WEIGHT_PORK);    set_target_temp(62.8); motor_control(CONTROLLED_MODE); break;
     default: switch_bool = false; break;
   }
 
-  for (int i = 0; i < 3; i++) vPortFree(bufs[i]);
+  for (int i = 0; i < 4; i++) vPortFree(bufs[i]);
   vPortFree(bufs);
 
   if (!switch_bool) return;
@@ -443,4 +445,9 @@ void update_prod_screen_done(char key) {
 
   for (int i = 0; i < 2; i++) vPortFree(bufs[i]);
   vPortFree(bufs);
+}
+
+void prod_trigger_error() {
+  switch_screen(PROD_SCREEN_ERROR);
+  all_off();
 }
