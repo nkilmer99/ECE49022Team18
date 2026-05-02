@@ -7,6 +7,8 @@
 #define TEMPSENSOR_PIN 21 // Set Temp Sensor Pin (Set in header file as well)
 #define TEMP_ERROR -999.0f // Default TEMP_ERROR Number for TEMP_ERROR cases
 
+float last_temperature = 0.0f;
+
 /*
 This code reads temperature in Celsius using 1 DS18B20 Sensor.
 It reads at highest resolution, only allowing 1 reading every
@@ -138,10 +140,10 @@ float DS18B20_read_temperature()
     int16_t temp = (MSB << 8) | LSB; // Store Bits into temp
 
     float temp_c = temp / 16.0f; // Convert to celsius
+    if (temp_c < 0.0f) temp_c = last_temperature;
+    if (temp_c > 100.0f) temp_c = last_temperature;
     return temp_c;
 }
-
-float last_temperature = 0.0;
 
 void temp_worker()
 {
